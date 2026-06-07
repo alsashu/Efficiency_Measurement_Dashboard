@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #1E3246;
+    --color-accent: #DC3223;
+    --color-gold: #9B875F;
+    --color-green: #19AA6E;
+    --color-steel: #4B5A69;
+    --sidebar-width: 260px;
+    --header-height: 64px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-900;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800;
+  }
+
+  .kpi-card {
+    @apply card p-5 hover:shadow-md transition-shadow duration-200;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-carbon text-white text-sm font-medium
+           hover:bg-carbon-light active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200
+           text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-vibrant text-white text-sm font-medium
+           hover:bg-vibrant-dark active:scale-95 transition-all duration-150;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600
+           bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+           text-sm focus:outline-none focus:ring-2 focus:ring-carbon/40 focus:border-carbon
+           dark:focus:ring-greenline/40 dark:focus:border-greenline transition-colors;
+  }
+
+  .label {
+    @apply block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success { @apply badge bg-greenline/10 text-greenline; }
+  .badge-warning { @apply badge bg-gold/10 text-gold; }
+  .badge-danger { @apply badge bg-vibrant/10 text-vibrant; }
+  .badge-info { @apply badge bg-carbon/10 text-carbon dark:bg-carbon/30 dark:text-blue-300; }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800
+           hover:text-gray-900 dark:hover:text-white transition-all duration-150 cursor-pointer;
+  }
+
+  .sidebar-link.active {
+    @apply bg-carbon/10 text-carbon dark:bg-carbon/30 dark:text-blue-300 font-semibold;
+  }
+
+  .chart-container {
+    @apply card p-5;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-1;
+  }
+
+  .section-subtitle {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-500; }
+
+}
+
+/* Sync status indicator */
+.sync-indicator {
+  @apply fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-lg;
+}
+
+.sync-online { @apply bg-greenline text-white; }
+.sync-offline { @apply bg-vibrant text-white; }
+.sync-syncing { @apply bg-gold text-white; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MUI / MaterialReactTable dark-mode overrides.
+   Intentionally OUTSIDE any @layer so these unlayered rules win over both
+   layered Tailwind styles AND MUI's own unlayered emotion-injected styles.
+   The !important ensures they beat any same-origin unlayered competitor.
+   ───────────────────────────────────────────────────────────────────────── */
+/* Paper / surfaces */
+.dark .MuiPaper-root {
+  background-color: #1f2937 !important;
+  background-image: none !important;
+  color: #f9fafb !important;
+}
+.dark .MuiPopover-paper,
+.dark .MuiMenu-paper,
+.dark .MuiList-root {
+  background-color: #1e293b !important;
+  color: #f9fafb !important;
+}
+/* Table cells */
+.dark .MuiTableCell-root {
+  color: #f9fafb !important;
+  border-bottom-color: #374151 !important;
+  background-color: transparent !important;
+}
+.dark .MuiTableCell-head {
+  background-color: #111827 !important;
+  color: #d1d5db !important;
+  font-weight: 600 !important;
+}
+.dark .MuiTableCell-stickyHeader {
+  background-color: #111827 !important;
+}
+.dark .MuiTableRow-root:hover .MuiTableCell-root {
+  background-color: rgba(255,255,255,0.06) !important;
+}
+.dark .MuiTableRow-root.Mui-selected .MuiTableCell-root,
+.dark .MuiTableRow-root.Mui-selected:hover .MuiTableCell-root {
+  background-color: rgba(96,165,250,0.12) !important;
+}
+/* Toolbars */
+.dark .MuiToolbar-root {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+/* Inputs */
+.dark .MuiInputBase-root { color: #f9fafb !important; }
+.dark .MuiOutlinedInput-notchedOutline { border-color: #4b5563 !important; }
+.dark .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #6b7280 !important; }
+.dark .MuiSelect-icon { color: #9ca3af !important; }
+.dark .MuiSvgIcon-root { color: #9ca3af !important; }
+.dark .MuiFormLabel-root,
+.dark .MuiInputLabel-root { color: #9ca3af !important; }
+/* Icon buttons */
+.dark .MuiIconButton-root { color: #9ca3af !important; }
+.dark .MuiIconButton-root:hover { background-color: rgba(255,255,255,0.08) !important; }
+.dark .MuiButtonBase-root.MuiButton-root { color: #d1d5db !important; }
+/* Checkboxes */
+.dark .MuiCheckbox-root { color: #6b7280 !important; }
+.dark .MuiCheckbox-root.Mui-checked { color: #60a5fa !important; }
+/* Pagination */
+.dark .MuiTablePagination-root,
+.dark .MuiTablePagination-displayedRows,
+.dark .MuiTablePagination-selectLabel { color: #9ca3af !important; }
+.dark .MuiTablePagination-select { color: #f9fafb !important; }
+/* Menu items */
+.dark .MuiMenuItem-root { color: #f9fafb !important; }
+.dark .MuiMenuItem-root:hover { background-color: #374151 !important; }
+.dark .MuiMenuItem-root.Mui-selected { background-color: rgba(96,165,250,0.15) !important; }
+/* Dividers, tooltips, progress */
+.dark .MuiDivider-root { border-color: #374151 !important; }
+.dark .MuiTooltip-tooltip { background-color: #374151 !important; color: #f9fafb !important; }
+.dark .MuiLinearProgress-root { background-color: #374151 !important; }
+.dark .MuiTypography-root { color: inherit !important; }
+/* Table container scroll area */
+.dark .MuiTableContainer-root { background-color: #1f2937 !important; }

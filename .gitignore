@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+backend/dist/
+frontend/dist/
+
+# Logs
+logs/
+*.log
+backend/logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Uploads
+backend/uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Docker
+docker-compose.override.yml
+
+# Screenshots / temp
+screenshot/
