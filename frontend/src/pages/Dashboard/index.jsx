@@ -9,6 +9,7 @@ import OpportunityPieChart from './charts/OpportunityPieChart';
 import TrendChart from './charts/TrendChart';
 import TopProgramsChart from './charts/TopProgramsChart';
 import AiInsights from './AiInsights';
+import ProgramCompression from './ProgramCompression';
 import {
   Clock, Activity, TrendingUp, DollarSign, Target, Layers,
   Cpu, BarChart3, RefreshCw
@@ -64,7 +65,7 @@ export default function Dashboard() {
     ? ((parseFloat(s.total_approved_budget_ke||0) - parseFloat(s.total_actual_budget_ke||0)) / parseFloat(s.total_approved_budget_ke||0) * 100).toFixed(1)
     : 0;
 
-  const TABS = ['overview', 'charts', 'ai insights'];
+  const TABS = ['overview', 'charts', 'ai insights', 'program compression'];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -174,6 +175,8 @@ export default function Dashboard() {
       )}
 
       {activeTab === 'ai insights' && <AiInsights params={params} />}
+
+      {activeTab === 'program compression' && <ProgramCompression params={params} />}
     </div>
   );
 }
