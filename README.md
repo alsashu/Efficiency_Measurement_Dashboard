@@ -160,6 +160,11 @@ UPLOAD_DIR=./uploads
 # ── Logging ───────────────────────────────────────────────
 LOG_DIR=./logs
 LOG_LEVEL=info
+
+# ── Plan Template ─────────────────────────────────────────
+# Path to the approved 14-column Excel template served by GET /api/plan/template/download
+# Relative paths resolve from the backend working directory.
+PLAN_TEMPLATE_PATH=./templates/TC_Efficiency-Clean.xlsx
 ```
 
 #### Production differences
@@ -171,6 +176,7 @@ LOG_LEVEL=info
 | `FRONTEND_URL` | `http://localhost:5173` | `https://your-domain.com` |
 | `LOG_LEVEL` | `debug` or `info` | `warn` |
 | `DB_PASSWORD` | simple dev password | strong password from secrets manager |
+| `PLAN_TEMPLATE_PATH` | `./templates/TC_Efficiency-Clean.xlsx` | Absolute path, e.g. `D:\...\templates\TC_Efficiency-Clean.xlsx` |
 
 Generate a production JWT secret:
 
@@ -199,17 +205,31 @@ baseURL: import.meta.env.VITE_API_BASE_URL || '/api'
 
 ### Quick start (Windows — recommended)
 
-The project ships with `start.bat` which installs dependencies, creates the database, runs migrations, seeds data, and launches both servers:
+The project ships with `start.bat` which performs all startup steps in sequence:
+
+| Step | Action |
+|------|--------|
+| Pre-check | Verifies Node.js 20+ is installed |
+| Pre-check | Warns if `backend/.env` is missing (with required key list) |
+| Pre-check | Warns if `backend/templates/TC_Efficiency-Clean.xlsx` is missing |
+| 1/6 | Installs backend npm dependencies (skipped if already installed) |
+| 2/6 | Installs frontend npm dependencies (skipped if already installed) |
+| 3/6 | Creates `tc_efficiency_db` PostgreSQL database (skipped if exists) |
+| 4/6 | Runs database migrations (`001_initial.sql`, `002_plan_module.sql`) |
+| 5/6 | Seeds default users, roles, and system settings |
+| 6/6 | Starts backend (port 5000) and frontend (port 5173) in separate windows |
 
 ```bat
 start.bat
 ```
 
-Servers open in separate console windows. Press any key in the original window to dismiss the pause. To stop:
+Servers open in separate console windows. Press any key in the original window to dismiss the pause. To stop all processes:
 
 ```bat
 stop.bat
 ```
+
+> **Important:** Create `backend/.env` before running `start.bat`. See Section 3 for the full template. Without `.env`, the backend starts with built-in defaults that may not match your PostgreSQL setup.
 
 ---
 

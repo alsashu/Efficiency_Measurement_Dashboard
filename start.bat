@@ -9,19 +9,76 @@ echo   Technology Center - Enterprise Analytics Platform
 echo ===============================================================
 echo.
 
+:: ── Prerequisite checks ────────────────────────────────────────
+
 :: Check Node.js
 node --version >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Node.js is not installed. Please install Node.js 18+ from nodejs.org
+    echo [ERROR] Node.js is not installed. Please install Node.js 20+ from nodejs.org
     pause
     exit /b 1
 )
 
-:: Check PostgreSQL
+:: Warn if Node.js is older than v20
+for /f "tokens=1 delims=v." %%a in ('node --version 2^>nul') do set NODE_MAJOR=%%a
+for /f "tokens=2 delims=v." %%a in ('node --version 2^>nul') do set NODE_MAJOR=%%a
+node -e "if(parseInt(process.versions.node)<20){process.exit(1)}" >nul 2>&1
+if errorlevel 1 (
+    echo [WARN] Node.js version is below 20. This project requires Node.js 20+.
+    echo        Current version: && node --version
+    echo        Download 20 LTS from: https://nodejs.org
+    echo.
+)
+
+:: Check PostgreSQL client
 psql --version >nul 2>&1
 if errorlevel 1 (
     echo [WARN] psql not found in PATH. Make sure PostgreSQL is running on port 5432.
 )
+
+:: ── Environment file check ──────────────────────────────────────
+
+if not exist "%~dp0backend\.env" (
+    echo.
+    echo [WARN] backend\.env not found.
+    echo        The backend will start with built-in defaults, which may not match
+    echo        your PostgreSQL credentials. It is strongly recommended to create
+    echo        backend\.env before proceeding.
+    echo.
+    echo        Minimum required content:
+    echo          DB_HOST=localhost
+    echo          DB_PORT=5432
+    echo          DB_NAME=tc_efficiency_db
+    echo          DB_USER=postgres
+    echo          DB_PASSWORD=your_postgres_password
+    echo          JWT_SECRET=change-this-to-a-long-random-string
+    echo          FRONTEND_URL=http://localhost:5173
+    echo          PLAN_TEMPLATE_PATH=./templates/TC_Efficiency-Clean.xlsx
+    echo.
+    echo        See README.md Section 3 for the full template.
+    echo.
+    choice /c YN /m "Continue without .env (Y) or exit to create it first (N)?"
+    if errorlevel 2 (
+        echo Exiting. Create backend\.env and re-run start.bat.
+        pause
+        exit /b 1
+    )
+)
+
+:: ── Template file check ─────────────────────────────────────────
+
+if not exist "%~dp0backend\templates\TC_Efficiency-Clean.xlsx" (
+    echo.
+    echo [WARN] Plan Excel template not found:
+    echo        backend\templates\TC_Efficiency-Clean.xlsx
+    echo.
+    echo        The "Download Template" button on the Plan Upload page will return
+    echo        a 404 error until this file is present.
+    echo        Copy TC_Efficiency-Clean.xlsx into backend\templates\ to resolve.
+    echo.
+)
+
+:: ────────────────────────────────────────────────────────────────
 
 echo [1/6] Checking backend dependencies...
 cd /d "%~dp0backend"
@@ -106,10 +163,14 @@ echo.
 echo ===============================================================
 echo   APPLICATION STARTED SUCCESSFULLY!
 echo ---------------------------------------------------------------
-echo   Frontend : http://localhost:5173
-echo   Backend  : http://localhost:5000
-echo   API Docs : http://localhost:5000/api/docs
-echo   Health   : http://localhost:5000/api/health
+echo   Frontend    : http://localhost:5173
+echo   Backend API : http://localhost:5000
+echo   API Docs    : http://localhost:5000/api/docs
+echo   Health      : http://localhost:5000/api/health
+echo ---------------------------------------------------------------
+echo   Plan Dashboard : http://localhost:5173/plan/dashboard
+echo   Plan Upload    : http://localhost:5173/plan/upload
+echo   Template DL    : http://localhost:5000/api/plan/template/download
 echo ---------------------------------------------------------------
 echo   LOGIN CREDENTIALS:
 echo   Admin   : admin / Admin@123456

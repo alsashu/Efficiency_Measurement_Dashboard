@@ -8,6 +8,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const planUploadCtrl = require('../controllers/planUploadController');
 const planProgramCtrl = require('../controllers/planProgramController');
 const planAnalyticsCtrl = require('../controllers/planAnalyticsController');
+const planTemplateCtrl = require('../controllers/planTemplateController');
 
 // Multer setup for plan uploads
 const uploadDir = process.env.UPLOAD_DIR || './uploads';
@@ -30,6 +31,9 @@ const upload = multer({
     else cb(new Error('Only Excel files (.xlsx, .xls) are allowed'));
   },
 });
+
+// Template download — public endpoint (no sensitive data, no auth required)
+router.get('/template/download', planTemplateCtrl.getTemplate);
 
 // Years
 router.get('/years', authenticate, planUploadCtrl.getYears);

@@ -10,6 +10,7 @@ export const planUploadsApi = {
   getAll: (params) => api.get('/plan/uploads', { params }),
   getById: (id) => api.get(`/plan/uploads/${id}`),
   delete: (id) => api.delete(`/plan/uploads/${id}`),
+  downloadTemplate: () => fetch('/api/plan/template/download'),
 };
 
 export const planProgramsApi = {

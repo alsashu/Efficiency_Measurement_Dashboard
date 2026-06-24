@@ -4,6 +4,7 @@ import { planUploadsApi, planYearsApi } from '../../services/planApi';
 import {
   Upload, FileSpreadsheet, Trash2, Clock, CheckCircle, AlertCircle,
   XCircle, Info, ChevronDown, ChevronUp, Database, AlertTriangle,
+  Download, Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatNumber } from '../../utils/exportUtils';
@@ -302,7 +303,33 @@ export default function PlanUploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [activeTab, setActiveTab] = useState('upload');
   const [uploadResult, setUploadResult] = useState(null); // { uploadSteps, validationReport, errorType, errorDetail, component, message }
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const fileRef = useRef();
+
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadingTemplate(true);
+      const res = await planUploadsApi.downloadTemplate();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.message || 'Template unavailable. Please contact your administrator.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'TC_Efficiency_Plan_Template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Could not download template. Please try again.');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
 
   const { data: uploadsData, isLoading } = useQuery({
     queryKey: ['plan-uploads', selectedYear],
@@ -479,6 +506,23 @@ export default function PlanUploadPage() {
                 <textarea value={notes} onChange={e => setNotes(e.target.value)}
                   className="input-field" rows={2} placeholder="Optional notes…" />
               </div>
+            </div>
+
+            <div className="card p-4 flex flex-col gap-2">
+              <p className="text-xs font-semibold text-gray-900 dark:text-white">Excel Template</p>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Download the approved template with all 14 columns pre-formatted for upload.
+              </p>
+              <button
+                onClick={handleDownloadTemplate}
+                disabled={downloadingTemplate}
+                className="btn-secondary flex items-center justify-center gap-2 text-xs w-full"
+              >
+                {downloadingTemplate
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <Download size={13} />}
+                {downloadingTemplate ? 'Downloading…' : 'Download Template'}
+              </button>
             </div>
 
             <div className="card p-4 space-y-2">

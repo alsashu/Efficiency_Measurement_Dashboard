@@ -10,6 +10,7 @@ vi.mock('../services/planApi', () => ({
     upload: vi.fn(),
     delete: vi.fn(),
     validate: vi.fn(),
+    downloadTemplate: vi.fn(),
   },
   planYearsApi: {
     getAll: vi.fn().mockResolvedValue({ data: [] }),
@@ -117,5 +118,83 @@ describe('File upload validation UI', () => {
     await waitFor(() => screen.getByText(/Drop Plan Data Excel file here/i));
     const input = document.querySelector('input[type="file"]');
     expect(input).toHaveAttribute('accept', '.xlsx,.xls');
+  });
+});
+
+describe('Download Template', () => {
+  it('renders the Download Template button', async () => {
+    render(<PlanUploadPage />, { wrapper });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /download template/i })).toBeInTheDocument();
+    });
+  });
+
+  it('renders the Excel Template section heading', async () => {
+    render(<PlanUploadPage />, { wrapper });
+    await waitFor(() => {
+      expect(screen.getByText(/Excel Template/i)).toBeInTheDocument();
+    });
+  });
+
+  it('calls planUploadsApi.downloadTemplate when button is clicked and triggers download', async () => {
+    const mockBlob = new Blob(['fake-xlsx'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const { planUploadsApi } = await import('../services/planApi');
+    planUploadsApi.downloadTemplate.mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(mockBlob),
+    });
+
+    // Mock URL APIs (jsdom doesn't implement them)
+    const createObjectURL = vi.fn(() => 'blob:mock-url');
+    const revokeObjectURL = vi.fn();
+    global.URL.createObjectURL = createObjectURL;
+    global.URL.revokeObjectURL = revokeObjectURL;
+
+    // Capture the anchor click
+    const appendSpy = vi.spyOn(document.body, 'appendChild');
+    const removeSpy = vi.spyOn(document.body, 'removeChild');
+
+    render(<PlanUploadPage />, { wrapper });
+    await waitFor(() => screen.getByRole('button', { name: /download template/i }));
+    fireEvent.click(screen.getByRole('button', { name: /download template/i }));
+
+    await waitFor(() => {
+      expect(planUploadsApi.downloadTemplate).toHaveBeenCalledTimes(1);
+      expect(createObjectURL).toHaveBeenCalledWith(mockBlob);
+    });
+
+    appendSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
+  it('shows error toast when server returns 404', async () => {
+    const toast = (await import('react-hot-toast')).default;
+    const { planUploadsApi } = await import('../services/planApi');
+    planUploadsApi.downloadTemplate.mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ message: 'Template file is not available.' }),
+    });
+
+    render(<PlanUploadPage />, { wrapper });
+    await waitFor(() => screen.getByRole('button', { name: /download template/i }));
+    fireEvent.click(screen.getByRole('button', { name: /download template/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Template file is not available.');
+    });
+  });
+
+  it('shows generic error toast when fetch rejects', async () => {
+    const toast = (await import('react-hot-toast')).default;
+    const { planUploadsApi } = await import('../services/planApi');
+    planUploadsApi.downloadTemplate.mockRejectedValue(new Error('network failure'));
+
+    render(<PlanUploadPage />, { wrapper });
+    await waitFor(() => screen.getByRole('button', { name: /download template/i }));
+    fireEvent.click(screen.getByRole('button', { name: /download template/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Could not download template. Please try again.');
+    });
   });
 });
