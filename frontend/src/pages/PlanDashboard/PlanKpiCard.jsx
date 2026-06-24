@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Info, X, ExternalLink, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import clsx from 'clsx';
-import { formatNumber } from '../../utils/exportUtils';
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 
@@ -96,6 +95,23 @@ function DepartmentsContent({ departments }) {
           ))}
       </tbody>
     </table>
+  );
+}
+
+// Combined Departments & Programs — tabbed
+function DeptsProgramsContent({ programs, departments }) {
+  const [tab, setTab] = useState('programs');
+  return (
+    <div>
+      <TabBar
+        tabs={[{ value: 'programs', label: 'Programs' }, { value: 'depts', label: 'Departments' }]}
+        active={tab}
+        onChange={setTab}
+      />
+      {tab === 'programs'
+        ? <TotalProgramsContent programs={programs} />
+        : <DepartmentsContent departments={departments} />}
+    </div>
   );
 }
 
@@ -212,20 +228,20 @@ function AvgPiContent({ programs }) {
 function TooltipContent({ kpiKey, tooltipData }) {
   const { programs = [], departments = [] } = tooltipData || {};
   switch (kpiKey) {
-    case 'total_programs':
-      return <TotalProgramsContent programs={programs} />;
-    case 'departments':
-      return <DepartmentsContent departments={departments} />;
+    case 'depts_programs':
+      return <DeptsProgramsContent programs={programs} departments={departments} />;
     case 'est_hours':
-      return <BreakdownContent programs={programs} departments={departments} progVal="estimated_hrs" deptVal="estimated_hrs" label="Est. Hours (Hrs)" />;
+      return <BreakdownContent programs={programs} departments={departments} progVal="estimated_hrs" deptVal="estimated_hrs" label="Est. Hours" />;
     case 'actual_hours':
-      return <BreakdownContent programs={programs} departments={departments} progVal="actual_hrs" deptVal="actual_hrs" label="Actual Hours (Hrs)" />;
+      return <BreakdownContent programs={programs} departments={departments} progVal="actual_hrs" deptVal="actual_hrs" label="Actual Hours" />;
     case 'effort_variance':
       return <VarianceContent programs={programs} departments={departments} />;
     case 'avg_pi':
       return <AvgPiContent programs={programs} />;
     case 'effort_saved_hrs':
       return <BreakdownContent programs={programs} departments={departments} progVal="effort_saved_hrs" deptVal="effort_saved_hrs" label="Effort Saved (Hrs)" />;
+    case 'effort_saved_euros':
+      return <BreakdownContent programs={programs} departments={departments} progVal="effort_saved_euros" deptVal="effort_saved_euros" label="Effort Saved (€)" formatter={fmtEur} />;
     case 'cost_saved':
       return <BreakdownContent programs={programs} departments={departments} progVal="cost_saved_euros" deptVal="cost_saved_euros" label="Cost Saved (€)" formatter={fmtEur} />;
     default:
@@ -234,13 +250,13 @@ function TooltipContent({ kpiKey, tooltipData }) {
 }
 
 const KPI_TITLES = {
-  total_programs: 'Total Programs',
-  departments: 'Departments',
+  depts_programs: 'Departments & Programs',
   est_hours: 'Estimated Hours Breakdown',
   actual_hours: 'Actual Hours Breakdown',
   effort_variance: 'Effort Variance Breakdown',
   avg_pi: 'Productivity Index per Program',
-  effort_saved_hrs: 'Effort Saved Breakdown',
+  effort_saved_hrs: 'Effort Saved (Hours) Breakdown',
+  effort_saved_euros: 'Effort Saved from Opportunities (€)',
   cost_saved: 'Cost Saved Breakdown',
 };
 
@@ -258,7 +274,6 @@ function KpiPopover({ anchorRef, kpiKey, tooltipData, onClose, popoverRef, onPop
     let left = rect.left + rect.width / 2 - PW / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - PW - 8));
 
-    // Prefer above; if not enough space, open below
     const top = rect.top >= PH + 12
       ? rect.top - PH - 8
       : rect.bottom + 8;
@@ -323,12 +338,48 @@ const COLOR_CLASSES = {
 const TREND_COLORS = { up: 'text-greenline', down: 'text-vibrant', flat: 'text-gray-400' };
 const TREND_ICONS  = { up: TrendingUp, down: TrendingDown, flat: Minus };
 
+// ─── Dual-value body (Departments & Programs combined card) ───────────────────
+// dualValues: [{ label, value, sub }, { label, value, sub }]
+
+function DualValueBody({ dualValues, loading }) {
+  if (loading) {
+    return (
+      <div className="flex gap-3 mt-1 mb-2">
+        {[0, 1].map(i => (
+          <div key={i} className="flex-1">
+            <div className="h-7 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mb-1" />
+            <div className="h-3 w-3/4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-stretch gap-0 mt-1 mb-2">
+      {dualValues.map((item, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && (
+            <div className="w-px bg-gray-200 dark:bg-gray-700 mx-3 self-stretch" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">{item.label}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white tabular-nums leading-tight">{item.value}</p>
+            {item.sub && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{item.sub}</p>}
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main PlanKpiCard ─────────────────────────────────────────────────────────
 
 export default function PlanKpiCard({
   title, value, subtitle, icon: Icon, color = 'carbon',
   trend, trendValue, loading,
   kpiKey, tooltipData,
+  // When provided, replaces single value with two side-by-side mini-stats
+  dualValues,
 }) {
   const navigate = useNavigate();
   const cardRef = useRef(null);
@@ -337,7 +388,6 @@ export default function PlanKpiCard({
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect touch/coarse pointer
   useEffect(() => {
     const mq = window.matchMedia('(pointer: coarse)');
     setIsMobile(mq.matches);
@@ -357,7 +407,6 @@ export default function PlanKpiCard({
 
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
-  // Close on outside click (mobile)
   useEffect(() => {
     if (!open || !isMobile) return;
     const h = (e) => {
@@ -402,22 +451,27 @@ export default function PlanKpiCard({
         )}
       </div>
 
-      {/* Value */}
-      {loading ? (
-        <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mb-1" />
+      {/* Dual value layout OR single value layout */}
+      {dualValues ? (
+        <DualValueBody dualValues={dualValues} loading={loading} />
       ) : (
-        <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{value}</p>
-      )}
-
-      {/* Subtitle + trend */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
-        {trendValue != null && (
-          <div className={clsx('flex items-center gap-1 text-xs font-medium', trendCls)}>
-            <TrendIcon size={12} /><span>{trendValue}</span>
+        <>
+          {loading ? (
+            <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mb-1" />
+          ) : (
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{value}</p>
+          )}
+          {/* Subtitle + trend */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+            {trendValue != null && (
+              <div className={clsx('flex items-center gap-1 text-xs font-medium', trendCls)}>
+                <TrendIcon size={12} /><span>{trendValue}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Mobile backdrop */}
       {open && isMobile && createPortal(

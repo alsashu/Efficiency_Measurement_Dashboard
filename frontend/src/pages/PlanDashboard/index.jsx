@@ -9,7 +9,7 @@ import PlanTopProgramsChart from './charts/PlanTopProgramsChart';
 import PlanTrendChart from './charts/PlanTrendChart';
 import {
   Clock, Activity, TrendingUp, DollarSign, Target,
-  Layers, BarChart3, RefreshCw, Calendar,
+  Layers, BarChart3, RefreshCw, Calendar, Euro,
 } from 'lucide-react';
 import { formatNumber } from '../../utils/exportUtils';
 
@@ -91,21 +91,18 @@ export default function PlanDashboard() {
     ? (yearOpts?.financialYears || [])
     : (yearOpts?.calendarYears || []).map(y => ({ value: y, label: String(y) }));
 
-  // KPI cards config — kpiKey drives which tooltip content renderer is used
+  // KPI cards config — 8 cards in a 4-column grid (2 rows)
+  // Card 1: Combined Departments & Programs (dual-value layout)
+  // Card 8: New — Total Effort Saved from Opportunities (€)
   const kpiCards = [
     {
-      kpiKey: 'total_programs',
-      title: 'Total Programs',
-      value: formatNumber(s.total_programs),
-      subtitle: `${formatNumber(s.total_baselines)} baselines`,
+      kpiKey: 'depts_programs',
+      title: 'Departments & Programs',
       icon: Layers, color: 'carbon',
-    },
-    {
-      kpiKey: 'departments',
-      title: 'Departments',
-      value: formatNumber(s.total_departments),
-      subtitle: 'Unique departments',
-      icon: BarChart3, color: 'steel',
+      dualValues: [
+        { label: 'Departments', value: formatNumber(s.total_departments), sub: 'Unique depts' },
+        { label: 'Programs',    value: formatNumber(s.total_programs),    sub: `${formatNumber(s.total_baselines)} baselines` },
+      ],
     },
     {
       kpiKey: 'est_hours',
@@ -144,6 +141,13 @@ export default function PlanDashboard() {
       value: formatNumber(s.total_effort_saved_hrs),
       subtitle: 'from opportunities',
       icon: Target, color: 'green',
+    },
+    {
+      kpiKey: 'effort_saved_euros',
+      title: 'Effort Saved (€)',
+      value: `€${formatNumber(s.total_effort_saved_euros)}`,
+      subtitle: 'from opportunities',
+      icon: Euro, color: 'steel',
     },
     {
       kpiKey: 'cost_saved',
