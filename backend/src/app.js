@@ -8,6 +8,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const logger = require('./config/logger');
 const routes = require('./routes/index');
+const planRoutes = require('./routes/planRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
 
 // API Routes
 app.use('/api', routes);
+app.use('/api/plan', planRoutes);
 
 // Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

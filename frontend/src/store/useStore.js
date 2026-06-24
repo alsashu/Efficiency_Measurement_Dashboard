@@ -86,3 +86,24 @@ export const useSidebarStore = create((set) => ({
   collapsed: false,
   toggle: () => set((s) => ({ collapsed: !s.collapsed })),
 }));
+
+// Plan dashboard filter store (Calendar Year / Financial Year)
+export const usePlanFilterStore = create(
+  persist(
+    (set) => ({
+      periodType: 'calendar', // 'calendar' | 'financial'
+      periodYear: null,        // null = All Years (no date filter applied)
+      selectedUploadId: null,
+      setPeriodType: (type) => set({ periodType: type }),
+      setPeriodYear: (year) => set({ periodYear: year }),
+      setUploadId: (id) => set({ selectedUploadId: id }),
+      reset: () => set({ periodType: 'calendar', periodYear: null, selectedUploadId: null }),
+    }),
+    {
+      name: 'tc_plan_filter',
+      version: 2,
+      // Migrate persisted state from v1 (which defaulted to current year) to v2 (null = all years)
+      migrate: (persisted) => ({ ...persisted, periodYear: null }),
+    }
+  )
+);

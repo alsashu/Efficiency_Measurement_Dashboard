@@ -3,29 +3,70 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Table2, BarChart3, PenSquare,
   Users, ClipboardList, Activity, Settings, ChevronLeft, ChevronRight,
-  Zap
+  Zap, Database, FileBarChart2,
 } from 'lucide-react';
 import { useSidebarStore, useAuthStore } from '../../store/useStore';
 import clsx from 'clsx';
 
-const NAV_ITEMS = [
+const LEGACY_NAV = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/upload', label: 'Excel Upload', icon: Upload, roles: ['admin','manager'] },
+  { path: '/upload', label: 'Excel Upload', icon: Upload, roles: ['admin', 'manager'] },
   { path: '/data-viewer', label: 'Data Viewer', icon: Table2 },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { path: '/manual-entry', label: 'Manual Entry', icon: PenSquare, roles: ['admin','manager'] },
-  { path: '/audit', label: 'Audit Trail', icon: ClipboardList, roles: ['admin','manager'] },
+  { path: '/manual-entry', label: 'Manual Entry', icon: PenSquare, roles: ['admin', 'manager'] },
+  { path: '/audit', label: 'Audit Trail', icon: ClipboardList, roles: ['admin', 'manager'] },
   { path: '/health', label: 'Health', icon: Activity },
   { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ];
 
+const PLAN_NAV = [
+  { path: '/plan', label: 'Dashboard', icon: FileBarChart2 },
+  { path: '/plan/upload', label: 'Excel Upload', icon: Upload, roles: ['admin', 'manager'] },
+  { path: '/plan/data-viewer', label: 'Data Viewer', icon: Table2 },
+  { path: '/plan/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/plan/manual-entry', label: 'Manual Entry', icon: PenSquare, roles: ['admin', 'manager'] },
+];
+
+function NavSection({ title, items, collapsed, userRole }) {
+  const visible = items.filter(item => !item.roles || item.roles.includes(userRole));
+
+  return (
+    <div>
+      {!collapsed && title && (
+        <p className="px-3 pt-3 pb-1 text-[10px] font-bold text-white/30 uppercase tracking-widest">{title}</p>
+      )}
+      {collapsed && title && <div className="my-1 mx-3 border-t border-white/10" />}
+      <div className="space-y-0.5">
+        {visible.map(({ path, label, icon: Icon }) => (
+          <NavLink key={path} to={path} end={path === '/' || path === '/plan'}>
+            {({ isActive }) => (
+              <div className={clsx(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer relative',
+                'transition-all duration-150 group',
+                isActive
+                  ? 'bg-white/15 text-white'
+                  : 'text-white/50 hover:bg-white/8 hover:text-white/90'
+              )}>
+                <Icon size={18} className="flex-shrink-0" />
+                {!collapsed && <span>{label}</span>}
+                {collapsed && (
+                  <div className="absolute left-16 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg
+                                  opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                    {label}
+                  </div>
+                )}
+              </div>
+            )}
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const { collapsed, toggle } = useSidebarStore();
   const { user } = useAuthStore();
-
-  const visibleItems = NAV_ITEMS.filter(item =>
-    !item.roles || item.roles.includes(user?.role)
-  );
 
   return (
     <aside className={clsx(
@@ -44,38 +85,25 @@ export default function Sidebar() {
             <p className="text-white/50 text-xs">Dashboard</p>
           </div>
         )}
-        <button
-          onClick={toggle}
-          className="ml-auto text-white/40 hover:text-white transition-colors"
-        >
+        <button onClick={toggle} className="ml-auto text-white/40 hover:text-white transition-colors">
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {visibleItems.map(({ path, label, icon: Icon }) => (
-          <NavLink key={path} to={path} end={path === '/'}>
-            {({ isActive }) => (
-              <div className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer',
-                'transition-all duration-150 group',
-                isActive
-                  ? 'bg-white/15 text-white'
-                  : 'text-white/50 hover:bg-white/8 hover:text-white/90'
-              )}>
-                <Icon size={18} className="flex-shrink-0" />
-                {!collapsed && <span>{label}</span>}
-                {collapsed && (
-                  <div className="absolute left-16 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg
-                                  opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
-                    {label}
-                  </div>
-                )}
-              </div>
-            )}
-          </NavLink>
-        ))}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <NavSection
+          title="Existing Dashboard (Legacy)"
+          items={LEGACY_NAV}
+          collapsed={collapsed}
+          userRole={user?.role}
+        />
+        <NavSection
+          title="New Dashboard (Plan Data)"
+          items={PLAN_NAV}
+          collapsed={collapsed}
+          userRole={user?.role}
+        />
       </nav>
 
       {/* User info */}

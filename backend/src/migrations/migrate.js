@@ -7,11 +7,17 @@ const logger = require('../config/logger');
 async function migrate() {
   const client = await pool.connect();
   try {
-    const sqlPath = path.join(__dirname, '001_initial.sql');
-    const sql = fs.readFileSync(sqlPath, 'utf8');
+    const migrations = ['001_initial.sql', '002_plan_module.sql'];
     console.log('Running migrations...');
-    await client.query(sql);
-    console.log('Migrations completed successfully.');
+    for (const file of migrations) {
+      const sqlPath = path.join(__dirname, file);
+      if (!fs.existsSync(sqlPath)) { console.warn(`Migration file not found: ${file}, skipping`); continue; }
+      console.log(`  Running: ${file}`);
+      const sql = fs.readFileSync(sqlPath, 'utf8');
+      await client.query(sql);
+      console.log(`  Done: ${file}`);
+    }
+    console.log('All migrations completed successfully.');
   } catch (err) {
     console.error('Migration failed:', err.message);
     process.exit(1);

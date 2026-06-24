@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/migrations/migrate.js",
-    "seed": "node src/seeds/seed.js"
+    "seed": "node src/seeds/seed.js",
+    "test": "jest --testPathPattern=tests/ --forceExit",
+    "test:watch": "jest --testPathPattern=tests/ --watch"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -21,16 +23,24 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.9",
+    "pdfkit": "^0.14.0",
     "pg": "^8.11.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
+    "uuid": "^9.0.1",
     "winston": "^3.11.0",
-    "xlsx": "^0.18.5",
-    "pdfkit": "^0.14.0",
-    "nodemailer": "^6.9.9",
-    "uuid": "^9.0.1"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-mock-extended": "^3.0.7",
     "nodemon": "^3.0.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   }
 }

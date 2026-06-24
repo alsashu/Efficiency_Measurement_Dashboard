@@ -22,7 +22,11 @@ api.interceptors.response.use(
       localStorage.removeItem('tc_user');
       window.location.href = '/login';
     }
-    return Promise.reject(new Error(msg));
+    const err = new Error(msg);
+    // Preserve full response body so callers can access validationReport, etc.
+    err.responseData = error.response?.data || null;
+    err.status = error.response?.status || null;
+    return Promise.reject(err);
   }
 );
 

@@ -7,14 +7,19 @@ import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import clsx from 'clsx';
 
 const PAGE_TITLES = {
-  '/': 'Dashboard',
-  '/upload': 'Excel Upload',
-  '/data-viewer': 'Data Viewer',
-  '/analytics': 'Analytics',
-  '/manual-entry': 'Manual Data Entry',
+  '/': 'Dashboard — Legacy',
+  '/upload': 'Excel Upload — Legacy',
+  '/data-viewer': 'Data Viewer — Legacy',
+  '/analytics': 'Analytics — Legacy',
+  '/manual-entry': 'Manual Data Entry — Legacy',
   '/audit': 'Audit Trail',
   '/health': 'System Health',
   '/settings': 'Settings',
+  '/plan': 'Dashboard — Plan Data',
+  '/plan/upload': 'Excel Upload — Plan Data',
+  '/plan/data-viewer': 'Data Viewer — Plan Data',
+  '/plan/analytics': 'Analytics — Plan Data',
+  '/plan/manual-entry': 'Manual Entry — Plan Data',
 };
 
 export default function AppLayout() {
