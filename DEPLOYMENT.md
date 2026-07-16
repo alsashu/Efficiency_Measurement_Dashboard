@@ -632,28 +632,6 @@ And update CORS in the backend `.env`:
 FRONTEND_URL=https://tc-efficiency.company.com
 ```
 
-### 5.2 PWA Service Worker Cache Pattern
-
-`frontend/vite.config.js` includes a hardcoded `localhost` URL in the PWA runtime cache config. This must be updated before building for production:
-
-```js
-// frontend/vite.config.js — update for production build
-workbox: {
-  runtimeCaching: [
-    {
-      // Change from localhost to production API pattern
-      urlPattern: /^https:\/\/tc-efficiency\.company\.com\/api\//,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'api-cache',
-        networkTimeoutSeconds: 10,
-        cacheableResponse: { statuses: [0, 200] },
-      },
-    },
-  ],
-},
-```
-
 ### 5.3 Frontend Environment Files
 
 Vite supports environment-specific files. Create `frontend/.env.production` before building:
@@ -844,7 +822,7 @@ Expected tables:
 | `programs` | Legacy program data (multi-column format) |
 | `audit_logs` | User action audit trail |
 | `notifications` | Per-user notifications |
-| `sync_queue` | PWA offline sync queue |
+| `sync_queue` | Unused (legacy offline-sync table, no longer written to) |
 | `kpi_thresholds` | KPI alert thresholds |
 | `scheduled_reports` | Scheduled report config |
 | `dashboard_layouts` | Saved dashboard layouts |

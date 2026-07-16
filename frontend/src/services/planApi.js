@@ -28,6 +28,7 @@ export const planAnalyticsApi = {
   getByProgram: (params) => api.get('/plan/analytics/by-program', { params }),
   getTrends: (params) => api.get('/plan/analytics/trends', { params }),
   getTopPrograms: (params) => api.get('/plan/analytics/top-programs', { params }),
+  getOpportunityBreakdown: (params) => api.get('/plan/analytics/opportunities', { params }),
   getPeriodOptions: () => api.get('/plan/analytics/period-options'),
   getKpiDetail: (params) => api.get('/plan/analytics/kpi-detail', { params }),
 };

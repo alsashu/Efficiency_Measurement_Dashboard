@@ -240,6 +240,48 @@ exports.getKpiDetail = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.getOpportunityBreakdown = async (req, res, next) => {
+  try {
+    const { uploadId, periodType = 'calendar', periodYear, dept } = req.query;
+    const params = [];
+    const where = buildPlanWhereClause(params, { uploadId, periodType, periodYear, dept });
+
+    const result = await query(`
+      SELECT
+        COALESCE(SUM(reuse_library),0) as reuse_library,
+        COALESCE(SUM(tech_competency),0) as tech_competency,
+        COALESCE(SUM(ai_copilot),0) as ai_copilot,
+        COALESCE(SUM(automation_testing),0) as automation_testing,
+        COALESCE(SUM(automation_reviews),0) as automation_reviews,
+        COALESCE(SUM(automation_cicd),0) as automation_cicd,
+        COALESCE(SUM(automation_others),0) as automation_others,
+        COALESCE(SUM(simulators_tools),0) as simulators_tools,
+        COALESCE(SUM(sdlc_improvement),0) as sdlc_improvement,
+        COALESCE(SUM(inefficiency_reduction),0) as inefficiency_reduction
+      FROM plan_programs p WHERE ${where}`, params);
+
+    const row = result.rows[0];
+    const categories = [
+      { name: 'Reuse of Reference Library / Solutions', key: 'reuse_library', value: parseFloat(row.reuse_library) },
+      { name: 'Technical Competency Improvement', key: 'tech_competency', value: parseFloat(row.tech_competency) },
+      { name: 'AI Assisted / Copilot Usage', key: 'ai_copilot', value: parseFloat(row.ai_copilot) },
+      { name: 'Automation of Testing (Unit / Component / System)', key: 'automation_testing', value: parseFloat(row.automation_testing) },
+      { name: 'Automation of Reviews', key: 'automation_reviews', value: parseFloat(row.automation_reviews) },
+      { name: 'Automation of Build & Release Process (CI/CD / DevX)', key: 'automation_cicd', value: parseFloat(row.automation_cicd) },
+      { name: 'Automation - Others (if any)', key: 'automation_others', value: parseFloat(row.automation_others) },
+      { name: 'Usage of Simulators / Tools / Infrastructure', key: 'simulators_tools', value: parseFloat(row.simulators_tools) },
+      { name: 'SDLC Process Improvement / Lean Process', key: 'sdlc_improvement', value: parseFloat(row.sdlc_improvement) },
+      { name: 'Opportunities Realized in Reducing Inefficiency', key: 'inefficiency_reduction', value: parseFloat(row.inefficiency_reduction) },
+    ].sort((a, b) => b.value - a.value);
+
+    const total = categories.reduce((s, c) => s + c.value, 0);
+    res.json({
+      success: true,
+      data: categories.map(c => ({ ...c, percentage: total > 0 ? parseFloat((c.value / total * 100).toFixed(1)) : 0 })),
+    });
+  } catch (err) { next(err); }
+};
+
 exports.getPeriodOptions = async (req, res, next) => {
   try {
     // Return available years from the data so the frontend can populate year dropdowns

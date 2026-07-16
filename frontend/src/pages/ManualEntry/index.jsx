@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { programsApi, uploadsApi, yearsApi } from '../../services/api';
 import { useAutoSave } from '../../hooks/useAutoSave';
-import { useSyncStore } from '../../store/useStore';
-import { idb } from '../../utils/indexedDB';
 import { Plus, Save, Edit2, Trash2, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -42,7 +40,6 @@ const Field = ({ label, name, register, errors, type = 'text', required }) => (
 
 export default function ManualEntry() {
   const qc = useQueryClient();
-  const { isOnline } = useSyncStore();
   const [selectedUploadId, setSelectedUploadId] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingId, setEditingId] = useState(null);
@@ -65,9 +62,7 @@ export default function ManualEntry() {
   const formData = watch();
 
   const createMutation = useMutation({
-    mutationFn: (data) => isOnline
-      ? programsApi.create({ ...data, uploadId: selectedUploadId })
-      : idb.addToSyncQueue({ operation: 'create', entityType: 'programs', payload: { ...data, uploadId: selectedUploadId } }).then(() => idb.saveProgram({ ...data, id: Date.now(), upload_id: selectedUploadId })),
+    mutationFn: (data) => programsApi.create({ ...data, uploadId: selectedUploadId }),
     onSuccess: () => { toast.success('Record created'); qc.invalidateQueries({ queryKey: ['programs-manual'] }); reset(); setShowForm(false); },
     onError: err => toast.error(err.message),
   });
@@ -179,7 +174,6 @@ export default function ManualEntry() {
               <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                 <Save size={14} /> {editingId ? 'Update' : 'Create'} Record
               </button>
-              {!isOnline && <span className="badge-warning text-xs self-center">Offline — will sync later</span>}
             </div>
           </form>
         </div>

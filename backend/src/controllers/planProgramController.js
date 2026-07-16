@@ -48,7 +48,9 @@ exports.createProgram = async (req, res, next) => {
       uploadId, dept, program_name, pm_responsible, program_code, baseline,
       baseline_start, baseline_end, estimated_hrs, actual_hrs, effort_variance,
       productivity_index, total_effort_saved_hrs, total_effort_saved_euros,
-      total_cost_saved_euros,
+      total_cost_saved_euros, reuse_library, tech_competency, ai_copilot,
+      automation_testing, automation_reviews, automation_cicd, automation_others,
+      simulators_tools, sdlc_improvement, inefficiency_reduction,
     } = req.body;
 
     if (!dept || !program_name) {
@@ -60,14 +62,19 @@ exports.createProgram = async (req, res, next) => {
         upload_id, dept, program_name, pm_responsible, program_code, baseline,
         baseline_start, baseline_end, estimated_hrs, actual_hrs, effort_variance,
         productivity_index, total_effort_saved_hrs, total_effort_saved_euros,
-        total_cost_saved_euros, is_manual
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,TRUE) RETURNING *`,
+        total_cost_saved_euros, reuse_library, tech_competency, ai_copilot,
+        automation_testing, automation_reviews, automation_cicd, automation_others,
+        simulators_tools, sdlc_improvement, inefficiency_reduction, is_manual
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,TRUE) RETURNING *`,
       [
         uploadId || null, dept, program_name, pm_responsible || null, program_code || null,
         baseline || null, baseline_start || null, baseline_end || null,
         estimated_hrs || null, actual_hrs || null, effort_variance || null,
         productivity_index || null, total_effort_saved_hrs || null, total_effort_saved_euros || null,
-        total_cost_saved_euros || null,
+        total_cost_saved_euros || null, reuse_library || null, tech_competency || null,
+        ai_copilot || null, automation_testing || null, automation_reviews || null,
+        automation_cicd || null, automation_others || null, simulators_tools || null,
+        sdlc_improvement || null, inefficiency_reduction || null,
       ]
     );
 
@@ -87,7 +94,9 @@ exports.updateProgram = async (req, res, next) => {
       dept, program_name, pm_responsible, program_code, baseline,
       baseline_start, baseline_end, estimated_hrs, actual_hrs, effort_variance,
       productivity_index, total_effort_saved_hrs, total_effort_saved_euros,
-      total_cost_saved_euros,
+      total_cost_saved_euros, reuse_library, tech_competency, ai_copilot,
+      automation_testing, automation_reviews, automation_cicd, automation_others,
+      simulators_tools, sdlc_improvement, inefficiency_reduction,
     } = req.body;
 
     const result = await query(
@@ -101,13 +110,21 @@ exports.updateProgram = async (req, res, next) => {
         total_effort_saved_hrs=COALESCE($12,total_effort_saved_hrs),
         total_effort_saved_euros=COALESCE($13,total_effort_saved_euros),
         total_cost_saved_euros=COALESCE($14,total_cost_saved_euros),
+        reuse_library=COALESCE($15,reuse_library), tech_competency=COALESCE($16,tech_competency),
+        ai_copilot=COALESCE($17,ai_copilot), automation_testing=COALESCE($18,automation_testing),
+        automation_reviews=COALESCE($19,automation_reviews), automation_cicd=COALESCE($20,automation_cicd),
+        automation_others=COALESCE($21,automation_others), simulators_tools=COALESCE($22,simulators_tools),
+        sdlc_improvement=COALESCE($23,sdlc_improvement),
+        inefficiency_reduction=COALESCE($24,inefficiency_reduction),
         updated_at=NOW()
-       WHERE id=$15 RETURNING *`,
+       WHERE id=$25 RETURNING *`,
       [
         dept, program_name, pm_responsible, program_code, baseline,
         baseline_start || null, baseline_end || null, estimated_hrs, actual_hrs,
         effort_variance, productivity_index, total_effort_saved_hrs,
-        total_effort_saved_euros, total_cost_saved_euros, req.params.id,
+        total_effort_saved_euros, total_cost_saved_euros, reuse_library, tech_competency,
+        ai_copilot, automation_testing, automation_reviews, automation_cicd, automation_others,
+        simulators_tools, sdlc_improvement, inefficiency_reduction, req.params.id,
       ]
     );
 

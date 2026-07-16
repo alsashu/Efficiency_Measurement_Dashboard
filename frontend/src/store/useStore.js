@@ -56,31 +56,6 @@ export const useFilterStore = create((set) => ({
   reset: () => set({ selectedYear: null, selectedUploadId: null, selectedDept: null }),
 }));
 
-// Offline/Sync store
-export const useSyncStore = create(
-  persist(
-    (set) => ({
-      isOnline: navigator.onLine,
-      syncStatus: 'idle', // idle | syncing | synced | error
-      pendingCount: 0,
-      offlineModeEnabled: false,
-      lastSyncTime: null,
-      setOnline: (v) => set({ isOnline: v }),
-      setSyncStatus: (s) => set({ syncStatus: s }),
-      setPendingCount: (n) => set({ pendingCount: n }),
-      setOfflineMode: (enabled) => set({ offlineModeEnabled: enabled }),
-      setLastSyncTime: (time) => set({ lastSyncTime: time }),
-    }),
-    {
-      name: 'tc_connectivity',
-      partialize: (state) => ({
-        offlineModeEnabled: state.offlineModeEnabled,
-        lastSyncTime: state.lastSyncTime,
-      }),
-    }
-  )
-);
-
 // Sidebar store
 export const useSidebarStore = create((set) => ({
   collapsed: false,

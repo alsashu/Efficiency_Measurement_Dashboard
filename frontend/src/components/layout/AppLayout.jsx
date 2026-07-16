@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useSidebarStore, useThemeStore } from '../../store/useStore';
-import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import clsx from 'clsx';
 
 const PAGE_TITLES = {
@@ -26,7 +25,6 @@ export default function AppLayout() {
   const { collapsed } = useSidebarStore();
   const { initTheme } = useThemeStore();
   const location = useLocation();
-  useOnlineStatus();
 
   useEffect(() => { initTheme(); }, []);
 

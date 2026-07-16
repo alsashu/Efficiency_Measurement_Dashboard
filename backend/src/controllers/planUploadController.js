@@ -65,9 +65,23 @@ function classifyDbError(err) {
 }
 
 function buildExcelSteps(fileName, ext, validationReport, errors, recordCount) {
-  const colMissing = validationReport?.columnsSummary?.filter(c => !c.found).length || 0;
+  const missingCols = validationReport?.columnsSummary?.filter(c => !c.found) || [];
+  const missingCoreCols = missingCols.filter(c => planExcelService.CORE_COLUMNS.includes(c.name));
+  const missingOptionalCols = missingCols.filter(c => !planExcelService.CORE_COLUMNS.includes(c.name));
+  const totalColumns = planExcelService.REQUIRED_COLUMNS.length;
+  const coreColumnCount = planExcelService.CORE_COLUMNS.length;
   const hasOrderError = errors.some(e => e.toLowerCase().includes('order'));
   const rowErrorCount = validationReport?.rowErrors?.length || 0;
+
+  let columnStatus = 'passed';
+  let columnDetails = `All ${totalColumns} columns present (${coreColumnCount} required + ${totalColumns - coreColumnCount} opportunity-category)`;
+  if (missingCoreCols.length > 0) {
+    columnStatus = 'failed';
+    columnDetails = `${missingCoreCols.length} missing required column(s): ${missingCoreCols.map(c => c.name).join(', ')}`;
+  } else if (missingOptionalCols.length > 0) {
+    columnStatus = 'warning';
+    columnDetails = `All ${coreColumnCount} required columns present. ${missingOptionalCols.length} optional opportunity-category column(s) missing: ${missingOptionalCols.map(c => c.name).join(', ')}`;
+  }
 
   return [
     {
@@ -89,10 +103,8 @@ function buildExcelSteps(fileName, ext, validationReport, errors, recordCount) {
     },
     {
       step: 'Column Validation',
-      status: colMissing === 0 ? 'passed' : 'failed',
-      details: colMissing === 0
-        ? 'All 14 required columns present'
-        : `${colMissing} missing column(s): ${validationReport?.columnsSummary?.filter(c => !c.found).map(c => c.name).join(', ')}`,
+      status: columnStatus,
+      details: columnDetails,
     },
     {
       step: 'Column Order Validation',

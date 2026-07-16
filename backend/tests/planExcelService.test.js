@@ -48,12 +48,16 @@ function createExcelFile(headers, rows = []) {
 }
 
 describe('planExcelService — REQUIRED_COLUMNS export', () => {
-  it('exports exactly 14 required columns', () => {
-    expect(planExcelService.REQUIRED_COLUMNS).toHaveLength(14);
+  it('exports 14 core columns + 10 opportunity-category columns (24 total)', () => {
+    expect(planExcelService.CORE_COLUMNS).toHaveLength(14);
+    expect(planExcelService.OPPORTUNITY_COLUMNS).toHaveLength(10);
+    expect(planExcelService.REQUIRED_COLUMNS).toHaveLength(24);
     expect(planExcelService.REQUIRED_COLUMNS[0]).toBe('Dept');
     expect(planExcelService.REQUIRED_COLUMNS[8]).toBe('Actual Hrs  (Hours)');
     expect(planExcelService.REQUIRED_COLUMNS[11]).toBe('Total Effort Saved from opportunities (Hours)');
     expect(planExcelService.REQUIRED_COLUMNS[13]).toBe('Total Cost Saved from opportunities (Euros)');
+    expect(planExcelService.REQUIRED_COLUMNS[14]).toBe('Reuse of Reference Library / Solutions (Hours)');
+    expect(planExcelService.REQUIRED_COLUMNS[23]).toBe('Opportunities Realized in Reducing Inefficiency (Hours)');
   });
 });
 
@@ -291,16 +295,18 @@ describe('planExcelService.validateAndParse — validation report structure', ()
       expect(r).toHaveProperty('columnsSummary');
       expect(r).toHaveProperty('headersDiagnostic');
       expect(Array.isArray(r.columnsSummary)).toBe(true);
-      expect(r.columnsSummary).toHaveLength(14);
+      expect(r.columnsSummary).toHaveLength(24);
       expect(Array.isArray(r.headersDiagnostic)).toBe(true);
-      expect(r.headersDiagnostic).toHaveLength(14);
+      expect(r.headersDiagnostic).toHaveLength(24);
     } finally {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     }
   });
 
   it('marks all columns as exact match with correct positions in valid file', async () => {
-    const file = createExcelFile(REQUIRED_COLUMNS, []);
+    // Uses the full 24-column set (core + opportunity) — a file with only the
+    // 14 core columns is the backward-compat case and is covered separately.
+    const file = createExcelFile(planExcelService.REQUIRED_COLUMNS, []);
     try {
       const result = await planExcelService.validateAndParse(file);
       result.validationReport.columnsSummary.forEach((col, i) => {
@@ -312,6 +318,49 @@ describe('planExcelService.validateAndParse — validation report structure', ()
         expect(d.matchType).toBe('exact');
         expect(d.found).toBe(true);
       });
+    } finally {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+  });
+});
+
+describe('planExcelService.validateAndParse — opportunity-category backward compatibility', () => {
+  it('passes with only the 14 core columns; missing opportunity columns are warnings, not errors', async () => {
+    const file = createExcelFile(REQUIRED_COLUMNS, [
+      ['TET', 'Program A', 'John', 'PGA-001', 'BL1', '2025-01-01', '2025-12-31', 100, 90, 10, 1.1, 5, 1000, 500],
+    ]);
+    try {
+      const result = await planExcelService.validateAndParse(file);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.validationReport.warnings.some(w => w.includes('optional opportunity-category'))).toBe(true);
+      const missingSummary = result.validationReport.columnsSummary.filter(c => !c.found);
+      expect(missingSummary).toHaveLength(10);
+      expect(result.records[0].reuse_library).toBeNull();
+    } finally {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+  });
+
+  it('parses opportunity-category values when all 24 columns are present', async () => {
+    const file = createExcelFile(planExcelService.REQUIRED_COLUMNS, [
+      ['TET', 'Program A', 'John', 'PGA-001', 'BL1', '2025-01-01', '2025-12-31', 100, 90, 10, 1.1, 5, 1000, 500,
+        10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    ]);
+    try {
+      const result = await planExcelService.validateAndParse(file);
+      expect(result.valid).toBe(true);
+      const r = result.records[0];
+      expect(r.reuse_library).toBe(10);
+      expect(r.tech_competency).toBe(20);
+      expect(r.ai_copilot).toBe(30);
+      expect(r.automation_testing).toBe(40);
+      expect(r.automation_reviews).toBe(50);
+      expect(r.automation_cicd).toBe(60);
+      expect(r.automation_others).toBe(70);
+      expect(r.simulators_tools).toBe(80);
+      expect(r.sdlc_improvement).toBe(90);
+      expect(r.inefficiency_reduction).toBe(100);
     } finally {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     }

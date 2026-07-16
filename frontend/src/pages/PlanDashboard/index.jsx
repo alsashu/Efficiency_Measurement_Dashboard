@@ -7,6 +7,7 @@ import PlanKpiCard from './PlanKpiCard';
 import PlanDeptBarChart from './charts/PlanDeptBarChart';
 import PlanTopProgramsChart from './charts/PlanTopProgramsChart';
 import PlanTrendChart from './charts/PlanTrendChart';
+import PlanOpportunityDonutChart from './charts/PlanOpportunityDonutChart';
 import {
   Clock, Activity, TrendingUp, DollarSign, Target,
   Layers, BarChart3, RefreshCw, Calendar, Euro,
@@ -80,6 +81,12 @@ export default function PlanDashboard() {
   const { data: topData } = useQuery({
     queryKey: ['plan-top', params],
     queryFn: () => planAnalyticsApi.getTopPrograms({ ...params, metric: 'effort_saved', limit: 10 }),
+    select: r => r.data,
+  });
+
+  const { data: opportunityData } = useQuery({
+    queryKey: ['plan-opportunities', params],
+    queryFn: () => planAnalyticsApi.getOpportunityBreakdown(params),
     select: r => r.data,
   });
 
@@ -164,7 +171,7 @@ export default function PlanDashboard() {
       <div className="flex flex-wrap items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Dashboard — Plan Data</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Source of truth: uploaded Excel plan data (14-column format)</p>
+          <p className="text-xs text-gray-500 mt-0.5">Source of truth: uploaded Excel plan data (14-column core + 10 opportunity-category columns)</p>
         </div>
         <div className="ml-auto">
           {periodYear && <PeriodBadge periodType={periodType} periodYear={periodYear} />}
@@ -258,14 +265,21 @@ export default function PlanDashboard() {
               ))}
           </div>
 
-          {/* Dept chart */}
+          {/* Dept chart + Opportunity Categories — mirrors Legacy Dashboard's side-by-side layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="chart-container lg:col-span-2">
+            <div className="chart-container">
               <p className="section-title">Effort by Department</p>
               <p className="section-subtitle mb-4">Estimated vs Actual vs Effort Saved hours per department</p>
               {loadingDept
                 ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
                 : <PlanDeptBarChart data={deptData} />}
+            </div>
+            <div className="chart-container">
+              <p className="section-title">Opportunity Categories</p>
+              <p className="section-subtitle mb-4">Distribution of effort saved by category</p>
+              {loadingSummary
+                ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                : <PlanOpportunityDonutChart data={opportunityData || []} />}
             </div>
           </div>
         </>

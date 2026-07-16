@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon, LogOut, Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
-import { useThemeStore, useAuthStore, useSyncStore } from '../../store/useStore';
+import { Sun, Moon, LogOut } from 'lucide-react';
+import { useThemeStore, useAuthStore } from '../../store/useStore';
 import { authApi } from '../../services/api';
 import { useSidebarStore } from '../../store/useStore';
 import Tooltip from '../ui/Tooltip';
@@ -11,7 +11,6 @@ export default function Header({ title = 'Dashboard' }) {
   const { theme, toggleTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
   const { collapsed } = useSidebarStore();
-  const { isOnline, syncStatus, pendingCount, offlineModeEnabled } = useSyncStore();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -20,20 +19,6 @@ export default function Header({ title = 'Dashboard' }) {
     logout();
     navigate('/login');
   };
-
-  const syncLabel = {
-    idle: null,
-    syncing: { icon: <RefreshCw size={12} className="animate-spin" />, tip: 'Syncing offline changes to server…' },
-    synced: { icon: <CheckCircle size={12} />, tip: 'All changes synced' },
-    error: { icon: <AlertCircle size={12} className="text-vibrant" />, tip: `${pendingCount} change(s) failed to sync` },
-  }[syncStatus];
-
-  // Effectively offline when: actual network is down OR user has manually enabled Offline Mode
-  const effectivelyOnline = isOnline && !offlineModeEnabled;
-
-  const onlineTooltip = offlineModeEnabled
-    ? isOnline ? 'Offline Mode enabled — using cached data (server is reachable)' : 'Offline Mode enabled — using cached data'
-    : isOnline ? 'Connected — live server data' : 'Disconnected — no network connection';
 
   return (
     <header className={clsx(
@@ -47,22 +32,6 @@ export default function Header({ title = 'Dashboard' }) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Online / sync status */}
-        <Tooltip content={onlineTooltip} placement="bottom">
-          <div className={clsx(
-            'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full cursor-default',
-            effectivelyOnline ? 'bg-greenline/10 text-greenline' : 'bg-vibrant/10 text-vibrant'
-          )}>
-            {effectivelyOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-            <span className="hidden sm:inline">{effectivelyOnline ? 'Online' : 'Offline'}</span>
-            {syncLabel && (
-              <Tooltip content={syncLabel.tip} placement="bottom">
-                <span className="ml-0.5">{syncLabel.icon}</span>
-              </Tooltip>
-            )}
-          </div>
-        </Tooltip>
-
         {/* Theme toggle */}
         <Tooltip content={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} placement="bottom">
           <button

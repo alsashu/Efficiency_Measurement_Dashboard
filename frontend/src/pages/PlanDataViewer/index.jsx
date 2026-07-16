@@ -86,6 +86,56 @@ const COLUMNS = [
     Cell: ({ cell }) => numCell(cell.getValue()),
   },
   {
+    accessorKey: 'reuse_library', header: 'Reuse Lib (Hrs)', size: 130,
+    ...tip('Reuse Lib (Hrs)', 'Reuse of Reference Library / Solutions (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'tech_competency', header: 'Tech Comp (Hrs)', size: 130,
+    ...tip('Tech Comp (Hrs)', 'Technical Competency Improvement (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'ai_copilot', header: 'AI/Copilot (Hrs)', size: 130,
+    ...tip('AI/Copilot (Hrs)', 'AI Assisted / Copilot Usage (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'automation_testing', header: 'Test Auto (Hrs)', size: 130,
+    ...tip('Test Auto (Hrs)', 'Automation of Testing (Unit / Component / System) (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'automation_reviews', header: 'Review Auto (Hrs)', size: 135,
+    ...tip('Review Auto (Hrs)', 'Automation of Reviews (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'automation_cicd', header: 'CI/CD Auto (Hrs)', size: 135,
+    ...tip('CI/CD Auto (Hrs)', 'Automation of Build & Release Process (CI/CD / DevX) (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'automation_others', header: 'Other Auto (Hrs)', size: 135,
+    ...tip('Other Auto (Hrs)', 'Automation - Others (if any) (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'simulators_tools', header: 'Simulators (Hrs)', size: 135,
+    ...tip('Simulators (Hrs)', 'Usage of Simulators / Tools / Infrastructure (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'sdlc_improvement', header: 'SDLC Impr (Hrs)', size: 135,
+    ...tip('SDLC Impr (Hrs)', 'Software Development Life Cycle (SDLC) Process Improvement / Lean Process (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
+    accessorKey: 'inefficiency_reduction', header: 'Inefficiency Red. (Hrs)', size: 150,
+    ...tip('Inefficiency Red. (Hrs)', 'Opportunities Realized in Reducing Inefficiency (Hours)'),
+    Cell: ({ cell }) => numCell(cell.getValue()),
+  },
+  {
     accessorKey: 'is_manual', header: 'Source', size: 80,
     Cell: ({ cell }) => (
       <span className={`badge ${cell.getValue() ? 'badge-warning' : 'badge-success'}`}>
@@ -155,6 +205,12 @@ export default function PlanDataViewer() {
     initialState: {
       density: 'compact',
       pagination: { pageSize: 10 },
+      columnVisibility: {
+        reuse_library: false, tech_competency: false, ai_copilot: false,
+        automation_testing: false, automation_reviews: false, automation_cicd: false,
+        automation_others: false, simulators_tools: false, sdlc_improvement: false,
+        inefficiency_reduction: false,
+      },
     },
     muiTableContainerProps: { sx: { maxHeight: '60vh', ...(isDark && { backgroundColor: '#1f2937' }) } },
     muiTablePaperProps: { sx: isDark ? { backgroundColor: '#1f2937', backgroundImage: 'none', color: '#f9fafb' } : {} },

@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Sync Queue (for PWA offline sync)
+-- Sync Queue (unused — retained for backward compatibility, no longer written to)
 CREATE TABLE IF NOT EXISTS sync_queue (
   id SERIAL PRIMARY KEY,
   client_id VARCHAR(100),

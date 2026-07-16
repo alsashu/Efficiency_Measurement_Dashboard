@@ -4,7 +4,7 @@ const logger = require('../config/logger');
 
 // Exact required columns matching TC_Efficiency-Clean.xlsx reference file
 // Col 9 has a double space before "(Hours)"; cols 12-14 use lowercase "opportunities"
-const REQUIRED_COLUMNS = [
+const CORE_COLUMNS = [
   'Dept',
   'Program Name',
   'PM Responsible',
@@ -21,6 +21,23 @@ const REQUIRED_COLUMNS = [
   'Total Cost Saved from opportunities (Euros)',
 ];
 
+// Opportunity-category breakdown — new columns (Req 1/2). Validated for type/order
+// when present, but NOT fatal if missing so older 14-column files keep importing.
+const OPPORTUNITY_COLUMNS = [
+  'Reuse of Reference Library / Solutions (Hours)',
+  'Technical Competency Improvement (Hours)',
+  'AI Assisted / Copilot Usage (Hours)',
+  'Automation of Testing (Unit / Component / System) (Hours)',
+  'Automation of Reviews (Hours)',
+  'Automation of Build & Release Process (CI/CD / DevX) (Hours)',
+  'Automation - Others (if any) (Hours)',
+  'Usage of Simulators / Tools / Infrastructure (Hours)',
+  'Software Development Life Cycle (SDLC) Process Improvement / Lean Process (Hours)',
+  'Opportunities Realized in Reducing Inefficiency (Hours)',
+];
+
+const REQUIRED_COLUMNS = [...CORE_COLUMNS, ...OPPORTUNITY_COLUMNS];
+
 const COLUMN_COUNT = REQUIRED_COLUMNS.length;
 
 const DATE_COLUMNS = new Set(['Baseline Start', 'Baseline End']);
@@ -32,6 +49,7 @@ const NUMERIC_COLUMNS = new Set([
   'Total Effort Saved from opportunities (Hours)',
   'Total Effort Saved from opportunities (Euros)',
   'Total Cost Saved from opportunities (Euros)',
+  ...OPPORTUNITY_COLUMNS,
 ]);
 const REQUIRED_FIELDS = new Set(['Dept', 'Program Name']);
 
@@ -211,12 +229,23 @@ exports.validateAndParse = async (filePath) => {
     }
   }
 
-  if (missingColumns.length > 0) {
+  const missingCoreColumns = missingColumns.filter(c => CORE_COLUMNS.includes(c));
+  const missingOpportunityColumns = missingColumns.filter(c => OPPORTUNITY_COLUMNS.includes(c));
+
+  if (missingCoreColumns.length > 0) {
     // Provide actionable detail: show what headers ARE in the file for comparison
     const availableHeaders = rawHeaders.filter(h => h !== '').join(', ');
     errors.push(
-      `Missing ${missingColumns.length} required column(s): ${missingColumns.map(c => `"${c}"`).join(', ')}. ` +
+      `Missing ${missingCoreColumns.length} required column(s): ${missingCoreColumns.map(c => `"${c}"`).join(', ')}. ` +
       `Headers found in file: ${availableHeaders}`
+    );
+  }
+
+  if (missingOpportunityColumns.length > 0) {
+    warnings.push(
+      `Missing ${missingOpportunityColumns.length} optional opportunity-category column(s): ` +
+      `${missingOpportunityColumns.map(c => `"${c}"`).join(', ')}. These are backward-compatible — ` +
+      `the file will still import, with these values left blank.`
     );
   }
 
@@ -242,8 +271,8 @@ exports.validateAndParse = async (filePath) => {
     warnings.push(`File has ${nonNullHeaders.length} columns; expected exactly ${COLUMN_COUNT}. Extra columns will be ignored.`);
   }
 
-  // If ALL columns are missing, stop before row parsing
-  if (missingColumns.length === REQUIRED_COLUMNS.length) {
+  // If ALL core columns are missing, stop before row parsing
+  if (missingCoreColumns.length === CORE_COLUMNS.length) {
     return {
       valid: false, errors, warnings, headers: rawHeaders, records: [], recordCount: 0,
       validationReport: {
@@ -320,6 +349,16 @@ exports.validateAndParse = async (filePath) => {
       total_effort_saved_hrs: parseNum(getCol('Total Effort Saved from opportunities (Hours)')),
       total_effort_saved_euros: parseNum(getCol('Total Effort Saved from opportunities (Euros)')),
       total_cost_saved_euros: parseNum(getCol('Total Cost Saved from opportunities (Euros)')),
+      reuse_library: parseNum(getCol('Reuse of Reference Library / Solutions (Hours)')),
+      tech_competency: parseNum(getCol('Technical Competency Improvement (Hours)')),
+      ai_copilot: parseNum(getCol('AI Assisted / Copilot Usage (Hours)')),
+      automation_testing: parseNum(getCol('Automation of Testing (Unit / Component / System) (Hours)')),
+      automation_reviews: parseNum(getCol('Automation of Reviews (Hours)')),
+      automation_cicd: parseNum(getCol('Automation of Build & Release Process (CI/CD / DevX) (Hours)')),
+      automation_others: parseNum(getCol('Automation - Others (if any) (Hours)')),
+      simulators_tools: parseNum(getCol('Usage of Simulators / Tools / Infrastructure (Hours)')),
+      sdlc_improvement: parseNum(getCol('Software Development Life Cycle (SDLC) Process Improvement / Lean Process (Hours)')),
+      inefficiency_reduction: parseNum(getCol('Opportunities Realized in Reducing Inefficiency (Hours)')),
       row_number: rowNum,
     });
   }
@@ -328,7 +367,7 @@ exports.validateAndParse = async (filePath) => {
     warnings.push('No data rows found after the header row.');
   }
 
-  const hasFatalErrors = missingColumns.length > 0 || orderErrors.length > 0;
+  const hasFatalErrors = missingCoreColumns.length > 0 || orderErrors.length > 0;
   const valid = !hasFatalErrors;
 
   const validationReport = {
@@ -345,7 +384,8 @@ exports.validateAndParse = async (filePath) => {
 
   logger.info(`Plan Excel validation: ${valid ? 'PASSED' : 'FAILED'}, file=${filePath}, records=${records.length}`, {
     sheetName,
-    missingColumns,
+    missingCoreColumns,
+    missingOpportunityColumns,
     orderErrors: orderErrors.length,
     warnings: warnings.length,
     rowErrors: rowErrors.length,
@@ -374,13 +414,17 @@ exports.insertPlanRecords = async (uploadId, records) => {
           upload_id, dept, program_name, pm_responsible, program_code, baseline,
           baseline_start, baseline_end, estimated_hrs, actual_hrs, effort_variance,
           productivity_index, total_effort_saved_hrs, total_effort_saved_euros,
-          total_cost_saved_euros, row_number
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+          total_cost_saved_euros, reuse_library, tech_competency, ai_copilot,
+          automation_testing, automation_reviews, automation_cicd, automation_others,
+          simulators_tools, sdlc_improvement, inefficiency_reduction, row_number
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)`,
         [
           uploadId, r.dept, r.program_name, r.pm_responsible, r.program_code, r.baseline,
           r.baseline_start, r.baseline_end, r.estimated_hrs, r.actual_hrs, r.effort_variance,
           r.productivity_index, r.total_effort_saved_hrs, r.total_effort_saved_euros,
-          r.total_cost_saved_euros, r.row_number,
+          r.total_cost_saved_euros, r.reuse_library, r.tech_competency, r.ai_copilot,
+          r.automation_testing, r.automation_reviews, r.automation_cicd, r.automation_others,
+          r.simulators_tools, r.sdlc_improvement, r.inefficiency_reduction, r.row_number,
         ]
       );
     }
@@ -394,3 +438,5 @@ exports.insertPlanRecords = async (uploadId, records) => {
 };
 
 exports.REQUIRED_COLUMNS = REQUIRED_COLUMNS;
+exports.CORE_COLUMNS = CORE_COLUMNS;
+exports.OPPORTUNITY_COLUMNS = OPPORTUNITY_COLUMNS;
