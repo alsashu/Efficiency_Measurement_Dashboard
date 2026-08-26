@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planAnalyticsApi, planUploadsApi } from '../../services/planApi';
 import { usePlanFilterStore } from '../../store/useStore';
 import { SkeletonCard } from '../../components/ui/LoadingSpinner';
-import PlanKpiCard from './PlanKpiCard';
-import PlanDeptBarChart from './charts/PlanDeptBarChart';
-import PlanTopProgramsChart from './charts/PlanTopProgramsChart';
-import PlanTrendChart from './charts/PlanTrendChart';
-import PlanOpportunityDonutChart from './charts/PlanOpportunityDonutChart';
+import PlanKpiCard from '../PlanDashboard/PlanKpiCard';
+import PlanOpportunityDonutChart from '../PlanDashboard/charts/PlanOpportunityDonutChart';
 import EffortSavedImpact from '../../components/plan/EffortSavedImpact';
 import {
-  Clock, Activity, TrendingUp, DollarSign, Target,
-  Layers, BarChart3, RefreshCw, Calendar, Euro,
+  Clock, Activity, TrendingUp, Target, Layers, BarChart3, RefreshCw, Calendar,
 } from 'lucide-react';
 import { formatNumber } from '../../utils/exportUtils';
 
@@ -31,12 +27,11 @@ function PeriodBadge({ periodType, periodYear }) {
   );
 }
 
-export default function PlanDashboard() {
+export default function PlanOverview() {
   const {
     periodType, periodYear, selectedUploadId,
     setPeriodType, setPeriodYear, setUploadId, reset,
   } = usePlanFilterStore();
-  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: yearOpts } = useQuery({
     queryKey: ['plan-period-options'],
@@ -58,7 +53,7 @@ export default function PlanDashboard() {
     select: r => r.data,
   });
 
-  // KPI detail: programs + departments breakdown — fetched once, shared across all 8 tooltips
+  // Shared detail source for KPI tooltip breakdowns
   const { data: kpiDetail } = useQuery({
     queryKey: ['plan-kpi-detail', params],
     queryFn: () => planAnalyticsApi.getKpiDetail(params),
@@ -67,41 +62,21 @@ export default function PlanDashboard() {
     staleTime: 60_000,
   });
 
-  const { data: deptData, isLoading: loadingDept } = useQuery({
-    queryKey: ['plan-dept', params],
-    queryFn: () => planAnalyticsApi.getByDepartment(params),
-    select: r => r.data,
-  });
-
-  const { data: trendData } = useQuery({
-    queryKey: ['plan-trends', params],
-    queryFn: () => planAnalyticsApi.getTrends(params),
-    select: r => r.data,
-  });
-
-  const { data: topData } = useQuery({
-    queryKey: ['plan-top', params],
-    queryFn: () => planAnalyticsApi.getTopPrograms({ ...params, metric: 'effort_saved', limit: 10 }),
-    select: r => r.data,
-  });
-
-  const { data: opportunityData } = useQuery({
+  const { data: opportunityData, isLoading: loadingOpportunity } = useQuery({
     queryKey: ['plan-opportunities', params],
     queryFn: () => planAnalyticsApi.getOpportunityBreakdown(params),
     select: r => r.data,
   });
 
   const s = summary || {};
-  const TABS = ['overview', 'charts'];
   const hasData = parseInt(s.total_baselines || 0) > 0;
 
   const currentYearOptions = periodType === 'financial'
     ? (yearOpts?.financialYears || [])
     : (yearOpts?.calendarYears || []).map(y => ({ value: y, label: String(y) }));
 
-  // KPI cards config — 8 cards in a 4-column grid (2 rows)
-  // Card 1: Combined Departments & Programs (dual-value layout)
-  // Card 8: New — Total Effort Saved from Opportunities (€)
+  // Card order fixed per spec: Departments & Programs, Total Est. Hours, Total Actual Hours,
+  // Effort Variance, Effort Saved (Hrs)
   const kpiCards = [
     {
       kpiKey: 'depts_programs',
@@ -109,7 +84,7 @@ export default function PlanDashboard() {
       icon: Layers, color: 'carbon',
       dualValues: [
         { label: 'Departments', value: formatNumber(s.total_departments), sub: 'Unique depts' },
-        { label: 'Programs',    value: formatNumber(s.total_programs),    sub: `${formatNumber(s.total_baselines)} baselines` },
+        { label: 'Programs', value: formatNumber(s.total_programs), sub: `${formatNumber(s.total_baselines)} baselines` },
       ],
     },
     {
@@ -136,33 +111,11 @@ export default function PlanDashboard() {
       color: 'gold',
     },
     {
-      kpiKey: 'avg_pi',
-      title: 'Avg Productivity Index',
-      value: parseFloat(s.avg_productivity_index || 0).toFixed(2),
-      subtitle: `${s.onbudget_count || 0} on budget | ${s.overbudget_count || 0} over`,
-      icon: Target,
-      color: parseFloat(s.avg_productivity_index || 0) >= 1 ? 'green' : 'red',
-    },
-    {
       kpiKey: 'effort_saved_hrs',
       title: 'Effort Saved (Hrs)',
       value: formatNumber(s.total_effort_saved_hrs),
       subtitle: 'from opportunities',
       icon: Target, color: 'green',
-    },
-    {
-      kpiKey: 'effort_saved_euros',
-      title: 'Effort Saved (€)',
-      value: `€${formatNumber(s.total_effort_saved_euros)}`,
-      subtitle: 'from opportunities',
-      icon: Euro, color: 'steel',
-    },
-    {
-      kpiKey: 'cost_saved',
-      title: 'Cost Saved (€)',
-      value: `€${formatNumber(s.total_cost_saved_euros)}`,
-      subtitle: 'from opportunities',
-      icon: DollarSign, color: 'gold',
     },
   ];
 
@@ -171,7 +124,7 @@ export default function PlanDashboard() {
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Dashboard — Plan Data</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Dashboard — Plan Data Overview</h2>
           <p className="text-xs text-gray-500 mt-0.5">Source of truth: uploaded Excel plan data (14-column core + 10 opportunity-category columns)</p>
         </div>
         <div className="ml-auto">
@@ -223,20 +176,6 @@ export default function PlanDashboard() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
-        {TABS.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium capitalize transition-colors ${
-              activeTab === tab
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}>
-            {tab}
-          </button>
-        ))}
-      </div>
-
       {/* No data */}
       {!loadingSummary && !hasData && (
         <div className="card p-12 text-center text-gray-400">
@@ -250,12 +189,12 @@ export default function PlanDashboard() {
         </div>
       )}
 
-      {(loadingSummary || hasData) && activeTab === 'overview' && (
+      {(loadingSummary || hasData) && (
         <>
-          {/* KPI grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* KPI grid — 5 cards per spec */}
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             {loadingSummary
-              ? Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)
+              ? Array(5).fill(0).map((_, i) => <SkeletonCard key={i} />)
               : kpiCards.map(card => (
                 <PlanKpiCard
                   key={card.kpiKey}
@@ -266,41 +205,18 @@ export default function PlanDashboard() {
               ))}
           </div>
 
-          {/* Dept chart + Opportunity Categories — mirrors Legacy Dashboard's side-by-side layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="chart-container">
-              <p className="section-title">Effort by Department</p>
-              <p className="section-subtitle mb-4">Estimated vs Actual vs Effort Saved hours per department</p>
-              {loadingDept
-                ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-                : <PlanDeptBarChart data={deptData} />}
-            </div>
-            <div className="chart-container">
-              <p className="section-title">Opportunity Categories</p>
-              <p className="section-subtitle mb-4">Distribution of effort saved by category</p>
-              {loadingSummary
-                ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-                : <PlanOpportunityDonutChart data={opportunityData || []} />}
-            </div>
+          {/* Opportunity Categories donut */}
+          <div className="chart-container">
+            <p className="section-title">Opportunity Categories</p>
+            <p className="section-subtitle mb-4">Distribution of effort saved by category</p>
+            {loadingOpportunity
+              ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              : <PlanOpportunityDonutChart data={opportunityData || []} />}
           </div>
 
+          {/* Effort Saved Impact — hard-coded values */}
           <EffortSavedImpact />
         </>
-      )}
-
-      {(loadingSummary || hasData) && activeTab === 'charts' && (
-        <div className="space-y-4">
-          <div className="chart-container">
-            <p className="section-title">Quarterly Trends</p>
-            <p className="section-subtitle mb-4">Estimated vs Actual Hours & Effort Saved over time</p>
-            <PlanTrendChart data={trendData?.quarterly || []} />
-          </div>
-          <div className="chart-container">
-            <p className="section-title">Top 10 Programs by Effort Saved</p>
-            <p className="section-subtitle mb-4">Ranked by Total Effort Saved from Opportunities (Hours)</p>
-            <PlanTopProgramsChart data={topData?.top || []} />
-          </div>
-        </div>
       )}
     </div>
   );

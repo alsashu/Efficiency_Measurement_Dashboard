@@ -23,6 +23,16 @@ const schema = z.object({
   total_effort_saved_hrs: z.coerce.number().optional(),
   total_effort_saved_euros: z.coerce.number().optional(),
   total_cost_saved_euros: z.coerce.number().optional(),
+  reuse_library: z.coerce.number().optional(),
+  tech_competency: z.coerce.number().optional(),
+  ai_copilot: z.coerce.number().optional(),
+  automation_testing: z.coerce.number().optional(),
+  automation_reviews: z.coerce.number().optional(),
+  automation_cicd: z.coerce.number().optional(),
+  automation_others: z.coerce.number().optional(),
+  simulators_tools: z.coerce.number().optional(),
+  sdlc_improvement: z.coerce.number().optional(),
+  inefficiency_reduction: z.coerce.number().optional(),
 });
 
 const Field = ({ label, name, register, errors, type = 'text', required, colSpan }) => (
@@ -100,6 +110,11 @@ export default function PlanManualEntry() {
       total_effort_saved_hrs: prog.total_effort_saved_hrs,
       total_effort_saved_euros: prog.total_effort_saved_euros,
       total_cost_saved_euros: prog.total_cost_saved_euros,
+      reuse_library: prog.reuse_library, tech_competency: prog.tech_competency,
+      ai_copilot: prog.ai_copilot, automation_testing: prog.automation_testing,
+      automation_reviews: prog.automation_reviews, automation_cicd: prog.automation_cicd,
+      automation_others: prog.automation_others, simulators_tools: prog.simulators_tools,
+      sdlc_improvement: prog.sdlc_improvement, inefficiency_reduction: prog.inefficiency_reduction,
     });
   };
 
@@ -108,7 +123,7 @@ export default function PlanManualEntry() {
       <div className="flex items-center gap-3">
         <div>
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">Plan Data — Manual Entry</h2>
-          <p className="text-xs text-gray-500">Enter records using the 14-column Plan Data format</p>
+          <p className="text-xs text-gray-500">Enter records using the Plan Data format (14 core + 10 opportunity-category fields)</p>
         </div>
       </div>
 
@@ -159,6 +174,20 @@ export default function PlanManualEntry() {
               <Field label="Effort Saved (€)" name="total_effort_saved_euros" register={register} errors={errors} type="number" />
               <Field label="Cost Saved (€)" name="total_cost_saved_euros" register={register} errors={errors} type="number" />
             </div>
+
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-6 mb-3">Opportunity Categories (Hours)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Field label="Reuse of Reference Library / Solutions" name="reuse_library" register={register} errors={errors} type="number" />
+              <Field label="Technical Competency Improvement" name="tech_competency" register={register} errors={errors} type="number" />
+              <Field label="AI Assisted / Copilot Usage" name="ai_copilot" register={register} errors={errors} type="number" />
+              <Field label="Automation of Testing (Unit/Component/System)" name="automation_testing" register={register} errors={errors} type="number" />
+              <Field label="Automation of Reviews" name="automation_reviews" register={register} errors={errors} type="number" />
+              <Field label="Automation of Build & Release (CI/CD / DevX)" name="automation_cicd" register={register} errors={errors} type="number" />
+              <Field label="Automation - Others (if any)" name="automation_others" register={register} errors={errors} type="number" />
+              <Field label="Usage of Simulators / Tools / Infrastructure" name="simulators_tools" register={register} errors={errors} type="number" />
+              <Field label="SDLC Process Improvement / Lean Process" name="sdlc_improvement" register={register} errors={errors} type="number" />
+              <Field label="Opportunities Realized in Reducing Inefficiency" name="inefficiency_reduction" register={register} errors={errors} type="number" />
+            </div>
             <div className="mt-5 flex gap-2">
               <button
                 type="submit"
@@ -178,7 +207,7 @@ export default function PlanManualEntry() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  {['Dept','Program','Code','Baseline','BL Start','BL End','Est Hrs','Act Hrs','Effort Var','PI','Effort Saved Hrs','Effort Saved €','Cost Saved €','Actions'].map(h => (
+                  {['Dept','Program','Code','Baseline','BL Start','BL End','Est Hrs','Act Hrs','Effort Var','PI','Effort Saved Hrs','Effort Saved €','Cost Saved €','Reuse Lib','Tech Comp','AI/Copilot','Test Auto','Review Auto','CI/CD Auto','Other Auto','Simulators','SDLC Impr','Inefficiency Red','Actions'].map(h => (
                     <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -203,6 +232,16 @@ export default function PlanManualEntry() {
                     <td className="px-3 py-2">{formatNumber(p.total_effort_saved_hrs)}</td>
                     <td className="px-3 py-2">{formatNumber(p.total_effort_saved_euros)}</td>
                     <td className="px-3 py-2">{formatNumber(p.total_cost_saved_euros)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.reuse_library)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.tech_competency)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.ai_copilot)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.automation_testing)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.automation_reviews)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.automation_cicd)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.automation_others)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.simulators_tools)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.sdlc_improvement)}</td>
+                    <td className="px-3 py-2">{formatNumber(p.inefficiency_reduction)}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
                         <button onClick={() => startEdit(p)} className="p-1.5 text-gray-400 hover:text-carbon hover:bg-carbon/5 rounded transition-colors">

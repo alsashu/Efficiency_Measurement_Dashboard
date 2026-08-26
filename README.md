@@ -1,6 +1,6 @@
 # TC Efficiency Measurement Dashboard
 
-A full-stack enterprise analytics platform for the Technology Center (TC) Efficiency Measurement program. It ingests Excel-based plan data, stores it in PostgreSQL, and surfaces interactive KPI dashboards, trend charts, and data viewers — with role-based access, audit logging, and PWA support.
+A full-stack enterprise analytics platform for the Technology Center (TC) Efficiency Measurement program. It ingests Excel-based plan data, stores it in PostgreSQL, and surfaces interactive KPI dashboards, trend charts, and data viewers — with role-based access and audit logging. The application operates online-only and requires an active connection to the backend API.
 
 ---
 
@@ -39,7 +39,6 @@ The TC Efficiency Measurement Dashboard provides Technology Center management wi
 - **User Management** — Admin/Manager/Viewer roles with JWT-based authentication
 - **Audit Log** — Full action audit trail per user
 - **Structured Upload Error Reporting** — Separate Excel validation errors from database errors, 9-step upload summary table
-- **PWA** — Installable, offline-capable (Service Worker via Vite PWA plugin)
 - **Dark Mode** — System-aware, toggleable
 
 ### Technology Stack
@@ -60,7 +59,7 @@ The TC Efficiency Measurement Dashboard provides Technology Center management wi
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Browser / PWA                                          │
+│  Browser                                                 │
 │  React 18  ·  React Query  ·  Zustand  ·  TailwindCSS  │
 └────────────────────┬────────────────────────────────────┘
                      │ HTTP/REST  (port 5173 dev / 80 prod)
@@ -831,7 +830,6 @@ Run through this list before going live.
 - [ ] SPA routing works (navigate to `/plan/dashboard`, refresh — no 404)
 - [ ] API calls succeed (network tab shows 2xx responses)
 - [ ] Excel file upload end-to-end works
-- [ ] PWA manifest loads (DevTools → Application → Manifest)
 
 ### Security
 

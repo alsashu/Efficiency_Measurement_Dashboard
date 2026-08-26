@@ -135,8 +135,6 @@ const seedData = async () => {
       INSERT INTO system_settings (key, value, description) VALUES
       ('app_name', '"TC Efficiency Measurement Dashboard"', 'Application name'),
       ('default_page_size', '10', 'Default rows per page'),
-      ('enable_offline', 'true', 'Enable PWA offline support'),
-      ('sync_interval', '30', 'Offline sync check interval in seconds'),
       ('max_upload_size', '52428800', 'Max file upload size in bytes')
       ON CONFLICT (key) DO NOTHING
     `);

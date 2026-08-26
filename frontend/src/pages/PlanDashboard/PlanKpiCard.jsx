@@ -205,7 +205,7 @@ function AvgPiContent({ programs }) {
           const isTop = topSet.has(p.program_name) && sorted.length > 5;
           const isBot = botSet.has(p.program_name) && sorted.length > 5;
           const piVal = parseFloat(p.avg_pi);
-          const piColor = piVal >= 1 ? 'text-greenline' : 'text-vibrant';
+          const piColor = piVal > 1 ? 'text-vibrant' : piVal < 1 ? 'text-greenline' : 'text-gray-500 dark:text-gray-400';
           return (
             <TRow key={i}
               cells={[

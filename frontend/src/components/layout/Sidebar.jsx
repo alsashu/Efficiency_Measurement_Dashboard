@@ -9,22 +9,26 @@ import { useSidebarStore, useAuthStore } from '../../store/useStore';
 import clsx from 'clsx';
 
 const LEGACY_NAV = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/upload', label: 'Excel Upload', icon: Upload, roles: ['admin', 'manager'] },
-  { path: '/data-viewer', label: 'Data Viewer', icon: Table2 },
-  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { path: '/manual-entry', label: 'Manual Entry', icon: PenSquare, roles: ['admin', 'manager'] },
-  { path: '/audit', label: 'Audit Trail', icon: ClipboardList, roles: ['admin', 'manager'] },
-  { path: '/health', label: 'Health', icon: Activity },
-  { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
+  // { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  // { path: '/upload', label: 'Excel Upload', icon: Upload, roles: ['admin', 'manager'] },
+  // { path: '/data-viewer', label: 'Data Viewer', icon: Table2 },
+  // { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+  // { path: '/manual-entry', label: 'Manual Entry', icon: PenSquare, roles: ['admin', 'manager'] },
+  // { path: '/audit', label: 'Audit Trail', icon: ClipboardList, roles: ['admin', 'manager'] },
+  // { path: '/health', label: 'Health', icon: Activity },
+  // { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ];
 
 const PLAN_NAV = [
+  { path: '/plan/overview', label: 'Overview', icon: LayoutDashboard },
   { path: '/plan', label: 'Dashboard', icon: FileBarChart2 },
   { path: '/plan/upload', label: 'Excel Upload', icon: Upload, roles: ['admin', 'manager'] },
   { path: '/plan/data-viewer', label: 'Data Viewer', icon: Table2 },
-  { path: '/plan/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/plan/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'manager'] },
   { path: '/plan/manual-entry', label: 'Manual Entry', icon: PenSquare, roles: ['admin', 'manager'] },
+  { path: '/audit', label: 'Audit Trail', icon: ClipboardList, roles: ['admin', 'manager'] },
+  { path: '/health', label: 'Health', icon: Activity, roles: ['admin', 'manager'] },
+  { path: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ];
 
 function NavSection({ title, items, collapsed, userRole }) {
@@ -92,12 +96,12 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        <NavSection
+        {/* <NavSection
           title="Existing Dashboard (Legacy)"
           items={LEGACY_NAV}
           collapsed={collapsed}
           userRole={user?.role}
-        />
+        /> */}
         <NavSection
           title="New Dashboard (Plan Data)"
           items={PLAN_NAV}

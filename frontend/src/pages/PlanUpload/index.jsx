@@ -10,7 +10,8 @@ import toast from 'react-hot-toast';
 import { formatNumber } from '../../utils/exportUtils';
 import { format } from 'date-fns';
 
-// Must match planExcelService.js REQUIRED_COLUMNS exactly (source: TC_Efficiency-Clean.xlsx)
+// Must match planExcelService.js CORE_COLUMNS exactly (source: TC_Efficiency-Clean.xlsx)
+// — fatal if missing.
 const REQUIRED_COLUMNS = [
   'Dept', 'Program Name', 'PM Responsible', 'Program Code', 'Baseline',
   'Baseline Start', 'Baseline End', 'Estimated Hrs (Hours)', 'Actual Hrs  (Hours)',
@@ -18,6 +19,21 @@ const REQUIRED_COLUMNS = [
   'Total Effort Saved from opportunities (Hours)',
   'Total Effort Saved from opportunities (Euros)',
   'Total Cost Saved from opportunities (Euros)',
+];
+
+// Must match planExcelService.js OPPORTUNITY_COLUMNS exactly — validated when present,
+// but backward-compatible: missing ones only produce a warning, not a failed upload.
+const OPTIONAL_COLUMNS = [
+  'Reuse of Reference Library / Solutions (Hours)',
+  'Technical Competency Improvement (Hours)',
+  'AI Assisted / Copilot Usage (Hours)',
+  'Automation of Testing (Unit / Component / System) (Hours)',
+  'Automation of Reviews (Hours)',
+  'Automation of Build & Release Process (CI/CD / DevX) (Hours)',
+  'Automation - Others (if any) (Hours)',
+  'Usage of Simulators / Tools / Infrastructure (Hours)',
+  'Software Development Life Cycle (SDLC) Process Improvement / Lean Process (Hours)',
+  'Opportunities Realized in Reducing Inefficiency (Hours)',
 ];
 
 // ─── Upload Step Status Icons ────────────────────────────────────────────────
@@ -401,7 +417,7 @@ export default function PlanUploadPage() {
     <div className="space-y-6 animate-fade-in max-w-5xl">
       <div>
         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Plan Data Upload</h2>
-        <p className="text-xs text-gray-500">Upload an Excel file matching the 14-column Plan Data format</p>
+        <p className="text-xs text-gray-500">Upload an Excel file matching the Plan Data format (14 core + 10 opportunity-category columns)</p>
       </div>
 
       {/* Tabs */}
@@ -511,7 +527,7 @@ export default function PlanUploadPage() {
             <div className="card p-4 flex flex-col gap-2">
               <p className="text-xs font-semibold text-gray-900 dark:text-white">Excel Template</p>
               <p className="text-[11px] text-gray-500 leading-relaxed">
-                Download the approved template with all 14 columns pre-formatted for upload.
+                Download the approved template with all 24 columns (14 required + 10 opportunity-category) pre-formatted for upload.
               </p>
               <button
                 onClick={handleDownloadTemplate}
@@ -530,6 +546,19 @@ export default function PlanUploadPage() {
               {REQUIRED_COLUMNS.map((col, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                   <span className="w-5 h-5 bg-carbon/10 dark:bg-carbon/20 text-carbon dark:text-blue-300 rounded text-center flex items-center justify-center font-bold text-[10px] flex-shrink-0">{i + 1}</span>
+                  <span className="font-mono">{col}</span>
+                </div>
+              ))}
+              <div className="pt-2 mt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-500 uppercase">Opportunity Columns</p>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gold/10 text-gold">Optional</span>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Backward-compatible — files without these still import; missing ones produce a warning, not an error.
+              </p>
+              {OPTIONAL_COLUMNS.map((col, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                  <span className="w-5 h-5 bg-gold/10 dark:bg-gold/20 text-gold rounded text-center flex items-center justify-center font-bold text-[10px] flex-shrink-0">{REQUIRED_COLUMNS.length + i + 1}</span>
                   <span className="font-mono">{col}</span>
                 </div>
               ))}

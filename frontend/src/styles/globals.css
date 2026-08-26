@@ -101,15 +101,6 @@
 
 }
 
-/* Sync status indicator */
-.sync-indicator {
-  @apply fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-lg;
-}
-
-.sync-online { @apply bg-greenline text-white; }
-.sync-offline { @apply bg-vibrant text-white; }
-.sync-syncing { @apply bg-gold text-white; }
-
 /* ─────────────────────────────────────────────────────────────────────────────
    MUI / MaterialReactTable dark-mode overrides.
    Intentionally OUTSIDE any @layer so these unlayered rules win over both

@@ -28,7 +28,7 @@ export default function Login() {
       const res = await authApi.login(data);
       setAuth(res.data.user, res.data.token);
       toast.success(`Welcome, ${res.data.user.username}!`);
-      navigate('/');
+      navigate('/plan/overview');
     } catch (err) {
       toast.error(err.message || 'Login failed');
     } finally {

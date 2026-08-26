@@ -59,6 +59,7 @@ router.get('/analytics/by-department', authenticate, planAnalyticsCtrl.getByDepa
 router.get('/analytics/by-program', authenticate, planAnalyticsCtrl.getByProgram);
 router.get('/analytics/trends', authenticate, planAnalyticsCtrl.getTrends);
 router.get('/analytics/top-programs', authenticate, planAnalyticsCtrl.getTopPrograms);
+router.get('/analytics/opportunities', authenticate, planAnalyticsCtrl.getOpportunityBreakdown);
 router.get('/analytics/period-options', authenticate, planAnalyticsCtrl.getPeriodOptions);
 router.get('/analytics/kpi-detail', authenticate, planAnalyticsCtrl.getKpiDetail);
 

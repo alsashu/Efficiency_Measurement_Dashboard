@@ -17,9 +17,9 @@ jest.mock('../src/middleware/auditLogger', () => ({
 }));
 
 jest.mock('../src/services/planExcelService', () => ({
+  ...jest.requireActual('../src/services/planExcelService'),
   validateAndParse: mockValidateAndParse,
   insertPlanRecords: mockInsertPlanRecords,
-  REQUIRED_COLUMNS: [],
 }));
 
 const fs = require('fs');
