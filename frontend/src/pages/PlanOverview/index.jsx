@@ -211,7 +211,7 @@ export default function PlanOverview() {
             <p className="section-subtitle mb-4">Distribution of effort saved by category</p>
             {loadingOpportunity
               ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-              : <PlanOpportunityDonutChart data={opportunityData || []} />}
+              : <PlanOpportunityDonutChart data={opportunityData || []} consolidate />}
           </div>
 
           {/* Effort Saved Impact — hard-coded values */}

@@ -24,6 +24,50 @@ const CATEGORY_META = [
 ];
 const META_BY_KEY = Object.fromEntries(CATEGORY_META.map(m => [m.key, m]));
 
+// Consolidated view (5 categories) — used only where the `consolidate` prop is
+// passed (currently /plan/overview). Maps each of the 10 raw category keys
+// into one of 5 groups and sums their values; percentages are recomputed
+// against the same overall total so the donut still represents 100% of effort
+// saved. The default (unconsolidated) chart is untouched by this.
+const CONSOLIDATION_MAP = {
+  automation_testing: 'automation',
+  automation_others: 'automation',
+  automation_cicd: 'cicd_devx',
+  ai_copilot: 'ai_assisted',
+  automation_reviews: 'ai_assisted',
+  simulators_tools: 'simulator_tools',
+  reuse_library: 'ref_lib_sdlc',
+  tech_competency: 'ref_lib_sdlc',
+  sdlc_improvement: 'ref_lib_sdlc',
+  inefficiency_reduction: 'ref_lib_sdlc',
+};
+
+const CONSOLIDATED_META = [
+  { key: 'ref_lib_sdlc', name: 'Reference Lib., SDLC Process Improvement and Reducing Inefficiency', light: '#2a78d6', dark: '#3987e5' },
+  { key: 'ai_assisted', name: 'AI Assisted / GHCP / Copilot Usage', light: '#e87ba4', dark: '#d55181' },
+  { key: 'automation', name: 'Automation', light: '#eda100', dark: '#c98500' },
+  { key: 'cicd_devx', name: 'CI/CD / DevX', light: '#eb6834', dark: '#d95926' },
+  { key: 'simulator_tools', name: 'Simulator Usage and Tools', light: '#e34948', dark: '#e66767' },
+];
+const CONSOLIDATED_META_BY_KEY = Object.fromEntries(CONSOLIDATED_META.map(m => [m.key, m]));
+
+function consolidateData(data) {
+  const totals = {};
+  for (const d of data) {
+    const groupKey = CONSOLIDATION_MAP[d.key] || d.key;
+    totals[groupKey] = (totals[groupKey] || 0) + parseFloat(d.value || 0);
+  }
+  const total = Object.values(totals).reduce((sum, v) => sum + v, 0);
+  return CONSOLIDATED_META
+    .map(m => ({
+      key: m.key,
+      name: m.name,
+      value: totals[m.key] || 0,
+      percentage: total > 0 ? parseFloat(((totals[m.key] || 0) / total * 100).toFixed(1)) : 0,
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
 const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
   if (percent < 0.05) return null;
   const RADIAN = Math.PI / 180;
@@ -56,11 +100,11 @@ function CustomTooltip({ active, payload }) {
 // Legend doubles as a compact table (swatch + name + hours + %) — mitigates the
 // >7-slice pie/donut concern by keeping every value reachable as text, not just
 // via hover, and is click-to-toggle for slice visibility.
-function InteractiveLegend({ items, hidden, onToggle, isDark }) {
+function InteractiveLegend({ items, hidden, onToggle, isDark, metaByKey }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-3 max-h-40 overflow-y-auto pr-1">
       {items.map(d => {
-        const meta = META_BY_KEY[d.key];
+        const meta = metaByKey[d.key];
         const color = isDark ? meta.dark : meta.light;
         const isHidden = hidden.has(d.key);
         return (
@@ -98,12 +142,14 @@ function InteractiveLegend({ items, hidden, onToggle, isDark }) {
   );
 }
 
-export default function PlanOpportunityDonutChart({ data = [] }) {
+export default function PlanOpportunityDonutChart({ data = [], consolidate = false }) {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
   const [hidden, setHidden] = useState(new Set());
+  const metaByKey = consolidate ? CONSOLIDATED_META_BY_KEY : META_BY_KEY;
+  const sourceData = consolidate ? consolidateData(data) : data;
 
-  if (!data.length || data.every(d => parseFloat(d.value) <= 0)) {
+  if (!sourceData.length || sourceData.every(d => parseFloat(d.value) <= 0)) {
     return <div className="h-72 flex items-center justify-center text-gray-400 text-sm">No opportunity-category data available</div>;
   }
 
@@ -115,7 +161,7 @@ export default function PlanOpportunityDonutChart({ data = [] }) {
     });
   };
 
-  const legendItems = data.map(d => ({ ...d, value: Math.round(parseFloat(d.value || 0)) }));
+  const legendItems = sourceData.map(d => ({ ...d, value: Math.round(parseFloat(d.value || 0)) }));
   const chartData = legendItems.filter(d => d.value > 0 && !hidden.has(d.key));
 
   return (
@@ -147,7 +193,7 @@ export default function PlanOpportunityDonutChart({ data = [] }) {
             isAnimationActive={false}
           >
             {chartData.map((d) => {
-              const meta = META_BY_KEY[d.key];
+              const meta = metaByKey[d.key];
               const fill = meta.textured ? `url(#${meta.textured})` : (isDark ? meta.dark : meta.light);
               return <Cell key={d.key} fill={fill} stroke={isDark ? '#111827' : '#ffffff'} strokeWidth={2} />;
             })}
@@ -155,7 +201,7 @@ export default function PlanOpportunityDonutChart({ data = [] }) {
           <Tooltip content={<CustomTooltip />} />
         </PieChart>
       </ResponsiveContainer>
-      <InteractiveLegend items={legendItems} hidden={hidden} onToggle={toggle} isDark={isDark} />
+      <InteractiveLegend items={legendItems} hidden={hidden} onToggle={toggle} isDark={isDark} metaByKey={metaByKey} />
     </div>
   );
 }
