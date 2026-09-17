@@ -501,3 +501,34 @@ describe('planExcelService.validateAndParse — edge cases', () => {
     }
   });
 });
+
+describe('planExcelService.validateAndParse — Efficiency_Plan sheet selection (workbook input)', () => {
+  function buildWorkbook(sheets) {
+    const wb = XLSX.utils.book_new();
+    for (const [name, aoa] of sheets) {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name);
+    }
+    return wb;
+  }
+  const dataRow = ['TET', 'RIGHT', 'John', 'PGA-001', 'BL1', '2025-01-01', '2025-12-31', 100, 90, 10, 1.1, 5, 1000, 500];
+
+  it('picks the sheet named "Efficiency_Plan" regardless of position, without a "using first sheet" warning', async () => {
+    const wb = buildWorkbook([
+      ['Forecasting', [['Dept'], ['X']]],
+      ['Efficiency_Plan', [REQUIRED_COLUMNS, dataRow]],
+    ]);
+    const result = await planExcelService.validateAndParse(wb);
+    expect(result.valid).toBe(true);
+    expect(result.validationReport.sheetUsed).toBe('Efficiency_Plan');
+    expect(result.warnings.some(w => w.includes('Using first sheet'))).toBe(false);
+    expect(result.recordCount).toBe(1);
+  });
+
+  it('falls back to the first sheet for legacy single-sheet files not named "Efficiency_Plan"', async () => {
+    const wb = buildWorkbook([['Sheet2', [REQUIRED_COLUMNS, dataRow]]]);
+    const result = await planExcelService.validateAndParse(wb);
+    expect(result.valid).toBe(true);
+    expect(result.validationReport.sheetUsed).toBe('Sheet2');
+    expect(result.recordCount).toBe(1);
+  });
+});

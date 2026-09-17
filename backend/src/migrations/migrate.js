@@ -7,7 +7,7 @@ const logger = require('../config/logger');
 async function migrate() {
   const client = await pool.connect();
   try {
-    const migrations = ['001_initial.sql', '002_plan_module.sql', '003_plan_opportunity_categories.sql'];
+    const migrations = ['001_initial.sql', '002_plan_module.sql', '003_plan_opportunity_categories.sql', '004_forecast_module.sql'];
     console.log('Running migrations...');
     for (const file of migrations) {
       const sqlPath = path.join(__dirname, file);

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Table2, BarChart3, PenSquare,
   Users, ClipboardList, Activity, Settings, ChevronLeft, ChevronRight,
-  Zap, Database, FileBarChart2,
+  Zap, Database, FileBarChart2, GanttChartSquare,
 } from 'lucide-react';
 import { useSidebarStore, useAuthStore } from '../../store/useStore';
 import clsx from 'clsx';
@@ -22,6 +22,7 @@ const LEGACY_NAV = [
 const PLAN_NAV = [
   { path: '/plan/overview', label: 'Overview', icon: LayoutDashboard },
   { path: '/plan', label: 'Dashboard', icon: FileBarChart2 },
+  { path: '/plan/programs-with-forecast', label: 'Programs with Forecast', icon: GanttChartSquare },
   { path: '/plan/upload', label: 'Excel Upload', icon: Upload, roles: ['admin', 'manager'] },
   { path: '/plan/data-viewer', label: 'Data Viewer', icon: Table2 },
   { path: '/plan/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'manager'] },

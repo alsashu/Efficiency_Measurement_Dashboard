@@ -22,6 +22,11 @@ export const planProgramsApi = {
   getFilterOptions: () => api.get('/plan/programs/filter-options'),
 };
 
+export const planForecastApi = {
+  getFilterOptions: () => api.get('/plan/forecast/filter-options'),
+  getTimeline: (params) => api.get('/plan/forecast/timeline', { params }),
+};
+
 export const planAnalyticsApi = {
   getSummary: (params) => api.get('/plan/analytics/summary', { params }),
   getByDepartment: (params) => api.get('/plan/analytics/by-department', { params }),

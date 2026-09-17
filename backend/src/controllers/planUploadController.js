@@ -4,6 +4,7 @@ const { query } = require('../config/database');
 const logger = require('../config/logger');
 const { logAudit } = require('../middleware/auditLogger');
 const planExcelService = require('../services/planExcelService');
+const forecastExcelService = require('../services/forecastExcelService');
 
 // PostgreSQL error codes of interest
 const PG_ERRORS = {
@@ -125,7 +126,9 @@ exports.validateExcel = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
     const filePath = req.file.path;
-    const result = await planExcelService.validateAndParse(filePath);
+    const wb = planExcelService.readWorkbook(filePath);
+    const result = await planExcelService.validateAndParse(wb);
+    const forecastResult = forecastExcelService.validateAndParse(wb);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({
       success: true,
@@ -133,6 +136,11 @@ exports.validateExcel = async (req, res, next) => {
         valid: result.valid,
         recordCount: result.recordCount,
         validationReport: result.validationReport,
+        forecast: {
+          found: forecastResult.found,
+          recordCount: forecastResult.recordCount,
+          validationReport: forecastResult.validationReport,
+        },
       },
     });
   } catch (err) {
@@ -156,11 +164,22 @@ exports.upload = async (req, res, next) => {
     const ext = path.extname(fileName).toLowerCase();
     const filePath = req.file.path;
 
-    // ── Step 1-6: Excel validation ────────────────────────────────────────────
+    // ── Step 1-6: Excel validation (Efficiency_Plan sheet) ──────────────────
+    const wb = planExcelService.readWorkbook(filePath);
     const { valid, errors, records, recordCount, validationReport } =
-      await planExcelService.validateAndParse(filePath);
+      await planExcelService.validateAndParse(wb);
 
     const excelSteps = buildExcelSteps(fileName, ext, validationReport, errors, recordCount);
+
+    // ── Forecasting sheet — independent, never blocks the Efficiency_Plan
+    // import (req. 3/20). A missing sheet or its own validation failure is
+    // surfaced as a step/warning only.
+    const forecastResult = forecastExcelService.validateAndParse(wb);
+    const forecastStep = !forecastResult.found
+      ? { step: 'Forecasting Sheet Detection', status: 'skipped', details: 'No "Forecasting" sheet found in the workbook — forecast data not imported.' }
+      : forecastResult.errors.length > 0
+        ? { step: 'Forecasting Sheet Detection', status: 'warning', details: `Forecasting sheet found but not imported: ${forecastResult.errors.join('; ')}` }
+        : { step: 'Forecasting Sheet Detection', status: 'passed', details: `Sheet "${forecastResult.validationReport.sheetUsed}" found — ${forecastResult.recordCount} records parsed.` };
 
     if (!valid) {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -172,6 +191,7 @@ exports.upload = async (req, res, next) => {
         component: 'Excel Validation',
         uploadSteps: [
           ...excelSteps,
+          forecastStep,
           { step: 'Database Connection', status: 'skipped', details: 'Skipped — validation failed' },
           { step: 'Table Validation', status: 'skipped', details: 'Skipped — validation failed' },
           { step: 'Data Import', status: 'skipped', details: 'Import stopped due to validation failure' },
@@ -219,27 +239,50 @@ exports.upload = async (req, res, next) => {
         await planExcelService.insertPlanRecords(upload.id, records);
       }
 
+      // Forecast import — best-effort, isolated from the Efficiency_Plan
+      // transaction above. A failure here never fails the overall upload.
+      let forecastImportStep = forecastStep;
+      let forecastRecordCount = 0;
+      if (forecastResult.found && forecastResult.records.length) {
+        try {
+          await forecastExcelService.insertForecastRecords(upload.id, forecastResult.records);
+          forecastRecordCount = forecastResult.records.length;
+          forecastImportStep = { step: 'Forecasting Data Import', status: 'passed', details: `${forecastRecordCount} forecast records imported.` };
+          await query(
+            'UPDATE plan_uploaded_files SET forecast_record_count=$1, forecast_validation_report=$2 WHERE id=$3',
+            [forecastRecordCount, JSON.stringify(forecastResult.validationReport), upload.id]
+          );
+        } catch (forecastErr) {
+          logger.error('Forecast import failed (non-fatal to plan upload)', { uploadId: upload.id, error: forecastErr.message });
+          forecastImportStep = { step: 'Forecasting Data Import', status: 'warning', details: `Forecast import failed: ${forecastErr.message}. Efficiency Plan data was imported successfully.` };
+        }
+      } else if (forecastResult.found) {
+        forecastImportStep = { step: 'Forecasting Data Import', status: 'skipped', details: 'Forecasting sheet found but had no data rows.' };
+      }
+
       await logAudit(
         req.user.id, 'PLAN_UPLOAD', 'plan_uploaded_files', upload.id,
-        { fileName, year, version, recordCount }, req.ip
+        { fileName, year, version, recordCount, forecastRecordCount }, req.ip
       );
 
       logger.info('Plan file uploaded successfully', {
-        uploadId: upload.id, fileName, userId: req.user.id, recordCount,
+        uploadId: upload.id, fileName, userId: req.user.id, recordCount, forecastRecordCount,
       });
 
       const uploadSteps = [
         ...excelSteps,
+        forecastStep,
         { step: 'Database Connection', status: 'passed', details: 'Connected to PostgreSQL' },
         { step: 'Table Validation', status: 'passed', details: 'Tables plan_upload_years, plan_uploaded_files, plan_programs verified' },
         { step: 'Data Import', status: 'passed', details: `${recordCount} records imported (version v${version})` },
+        forecastImportStep,
       ];
 
       return res.status(201).json({
         success: true,
-        message: `File uploaded successfully. ${recordCount} records imported.`,
+        message: `File uploaded successfully. ${recordCount} records imported.${forecastRecordCount ? ` ${forecastRecordCount} forecast records imported.` : ''}`,
         uploadSteps,
-        data: { ...upload, record_count: recordCount, validationReport },
+        data: { ...upload, record_count: recordCount, forecast_record_count: forecastRecordCount, validationReport },
       });
 
     } catch (dbErr) {

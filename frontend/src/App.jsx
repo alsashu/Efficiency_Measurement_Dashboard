@@ -19,6 +19,7 @@ import PlanUploadPage from './pages/PlanUpload/index';
 import PlanDataViewer from './pages/PlanDataViewer/index';
 import PlanAnalytics from './pages/PlanAnalytics/index';
 import PlanManualEntry from './pages/PlanManualEntry/index';
+import ProgramForecast from './pages/ProgramForecast/index';
 
 // Default landing page for all roles — never redirect here from a blocked route,
 // it must stay open to every authenticated role (including Viewer).
@@ -53,6 +54,7 @@ export default function App() {
           {/* New Plan Data dashboard */}
           <Route path="plan/overview" element={<PlanOverview />} />
           <Route path="plan" element={<PlanDashboard />} />
+          <Route path="plan/programs-with-forecast" element={<ProgramForecast />} />
           <Route path="plan/upload" element={<ProtectedRoute roles={['admin', 'manager']}><PlanUploadPage /></ProtectedRoute>} />
           <Route path="plan/data-viewer" element={<PlanDataViewer />} />
           <Route path="plan/analytics" element={<ProtectedRoute roles={['admin', 'manager']}><PlanAnalytics /></ProtectedRoute>} />

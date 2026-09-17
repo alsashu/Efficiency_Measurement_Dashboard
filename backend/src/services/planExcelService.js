@@ -99,7 +99,23 @@ const isValidDate = (val) => {
 };
 
 /**
- * Validates and parses a Plan Data Excel file.
+ * Reads an Excel workbook from disk. Shared by planExcelService and
+ * forecastExcelService so the file is only read once per upload.
+ */
+exports.readWorkbook = (filePath) => XLSX.readFile(filePath, { cellDates: false });
+
+/**
+ * Finds a sheet name in a workbook by trimmed/case-insensitive match.
+ * Returns the exact sheet name as it appears in the workbook, or null.
+ */
+function findSheetByName(wb, targetName) {
+  const target = normalizeForCompare(targetName);
+  return wb.SheetNames.find(name => normalizeForCompare(name) === target) || null;
+}
+exports.findSheetByName = findSheetByName;
+
+/**
+ * Validates and parses a Plan Data Excel workbook (Efficiency_Plan sheet).
  * Returns { valid, errors, warnings, headers, records, recordCount, validationReport }
  *
  * Column matching uses two passes:
@@ -108,32 +124,44 @@ const isValidDate = (val) => {
  * This allows the file to pass even with minor formatting variations while still
  * reporting the discrepancy clearly.
  */
-exports.validateAndParse = async (filePath) => {
+exports.validateAndParse = async (input) => {
   const errors = [];
   const warnings = [];
   const rowErrors = [];
 
+  // Accepts either a file path (legacy call shape, still used by callers that
+  // haven't loaded a workbook yet) or an already-loaded XLSX workbook object
+  // (used by planUploadController so the file is only read once per upload).
   let wb;
-  try {
-    wb = XLSX.readFile(filePath, { cellDates: false });
-  } catch (err) {
-    const msg = `Cannot read Excel file: ${err.message}`;
-    return {
-      valid: false, errors: [msg], warnings: [], headers: [], records: [], recordCount: 0,
-      validationReport: { passed: false, errors: [msg], warnings: [], rowErrors: [], columnsSummary: [], headersDiagnostic: [] },
-    };
+  if (typeof input === 'string') {
+    try {
+      wb = XLSX.readFile(input, { cellDates: false });
+    } catch (err) {
+      const msg = `Cannot read Excel file: ${err.message}`;
+      return {
+        valid: false, errors: [msg], warnings: [], headers: [], records: [], recordCount: 0,
+        validationReport: { passed: false, errors: [msg], warnings: [], rowErrors: [], columnsSummary: [], headersDiagnostic: [] },
+      };
+    }
+  } else {
+    wb = input;
   }
 
-  const sheetName = wb.SheetNames[0];
-  if (!sheetName) {
+  if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) {
     const msg = 'Excel file has no sheets';
     return {
       valid: false, errors: [msg], warnings: [], headers: [], records: [], recordCount: 0,
       validationReport: { passed: false, errors: [msg], warnings: [], rowErrors: [], columnsSummary: [], headersDiagnostic: [] },
     };
   }
-  if (wb.SheetNames.length > 1) {
-    warnings.push(`File has ${wb.SheetNames.length} sheets. Using first sheet: "${sheetName}".`);
+
+  // Prefer the sheet explicitly named "Efficiency_Plan" (trim/case-insensitive).
+  // Falls back to the first sheet for legacy single-sheet files whose sheet
+  // may be named anything (e.g. "Sheet2") — preserves pre-existing behavior.
+  const matchedName = findSheetByName(wb, 'Efficiency_Plan');
+  const sheetName = matchedName || wb.SheetNames[0];
+  if (!matchedName && wb.SheetNames.length > 1) {
+    warnings.push(`File has ${wb.SheetNames.length} sheets and none is named "Efficiency_Plan". Using first sheet: "${sheetName}".`);
   }
 
   const ws = wb.Sheets[sheetName];
@@ -382,7 +410,7 @@ exports.validateAndParse = async (filePath) => {
     headersDiagnostic,
   };
 
-  logger.info(`Plan Excel validation: ${valid ? 'PASSED' : 'FAILED'}, file=${filePath}, records=${records.length}`, {
+  logger.info(`Plan Excel validation: ${valid ? 'PASSED' : 'FAILED'}, sheet=${sheetName}, records=${records.length}`, {
     sheetName,
     missingCoreColumns,
     missingOpportunityColumns,

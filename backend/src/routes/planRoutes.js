@@ -9,6 +9,7 @@ const planUploadCtrl = require('../controllers/planUploadController');
 const planProgramCtrl = require('../controllers/planProgramController');
 const planAnalyticsCtrl = require('../controllers/planAnalyticsController');
 const planTemplateCtrl = require('../controllers/planTemplateController');
+const forecastCtrl = require('../controllers/forecastController');
 
 // Multer setup for plan uploads
 const uploadDir = process.env.UPLOAD_DIR || './uploads';
@@ -62,5 +63,9 @@ router.get('/analytics/top-programs', authenticate, planAnalyticsCtrl.getTopProg
 router.get('/analytics/opportunities', authenticate, planAnalyticsCtrl.getOpportunityBreakdown);
 router.get('/analytics/period-options', authenticate, planAnalyticsCtrl.getPeriodOptions);
 router.get('/analytics/kpi-detail', authenticate, planAnalyticsCtrl.getKpiDetail);
+
+// Programs with Forecast
+router.get('/forecast/filter-options', authenticate, forecastCtrl.getFilterOptions);
+router.get('/forecast/timeline', authenticate, forecastCtrl.getTimeline);
 
 module.exports = router;

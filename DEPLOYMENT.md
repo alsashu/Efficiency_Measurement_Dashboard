@@ -1129,3 +1129,19 @@ Rotate the following secrets on a schedule or after any suspected compromise:
 | SSL Certificate | Self-signed or Let's Encrypt | Enterprise PKI |
 
 Always test a deployment on UAT before applying to Production.
+
+
+<nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <NavSection
+          title="Existing Dashboard (Legacy)"
+          items={LEGACY_NAV}
+          collapsed={collapsed}
+          userRole={user?.role}
+        />
+        <NavSection
+          title="New Dashboard (Plan Data)"
+          items={PLAN_NAV}
+          collapsed={collapsed}
+          userRole={user?.role}
+        />
+      </nav>

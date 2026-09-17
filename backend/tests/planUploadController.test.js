@@ -2,6 +2,11 @@ const mockQuery = jest.fn();
 const mockLogAudit = jest.fn();
 const mockValidateAndParse = jest.fn();
 const mockInsertPlanRecords = jest.fn();
+const mockReadWorkbook = jest.fn();
+const mockForecastValidateAndParse = jest.fn();
+const mockInsertForecastRecords = jest.fn();
+
+const FORECAST_NOT_FOUND = { found: false, valid: true, errors: [], warnings: [], headers: [], records: [], recordCount: 0, validationReport: null };
 
 jest.mock('../src/config/database', () => ({
   query: mockQuery,
@@ -20,6 +25,12 @@ jest.mock('../src/services/planExcelService', () => ({
   ...jest.requireActual('../src/services/planExcelService'),
   validateAndParse: mockValidateAndParse,
   insertPlanRecords: mockInsertPlanRecords,
+  readWorkbook: mockReadWorkbook,
+}));
+
+jest.mock('../src/services/forecastExcelService', () => ({
+  validateAndParse: mockForecastValidateAndParse,
+  insertForecastRecords: mockInsertForecastRecords,
 }));
 
 const fs = require('fs');
@@ -38,6 +49,8 @@ const mockNext = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockReadWorkbook.mockReturnValue({ SheetNames: ['Sheet1'], Sheets: {} });
+  mockForecastValidateAndParse.mockReturnValue(FORECAST_NOT_FOUND);
 });
 
 describe('planUploadController.validateExcel', () => {
@@ -183,6 +196,73 @@ describe('planUploadController.upload', () => {
     expect(Array.isArray(body.uploadSteps)).toBe(true);
     expect(body.uploadSteps.some(s => s.step === 'Data Import' && s.status === 'passed')).toBe(true);
     expect(mockInsertPlanRecords).toHaveBeenCalledWith(10, fakeRecords);
+  });
+
+  it('legacy single-sheet workbook (no Forecasting sheet) still succeeds unchanged', async () => {
+    const fakeRecords = [{ dept: 'TET', program_name: 'Prog A' }];
+    mockValidateAndParse.mockResolvedValue({
+      valid: true, errors: [], records: fakeRecords, recordCount: 1,
+      validationReport: { passed: true, sheetUsed: 'Sheet2', totalRows: 1, validRows: 1, errors: [], warnings: [], rowErrors: [], columnsSummary: [], headersDiagnostic: [] },
+    });
+    mockForecastValidateAndParse.mockReturnValue(FORECAST_NOT_FOUND);
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 5 }] })
+      .mockResolvedValueOnce({ rows: [{ next_version: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ id: 10, file_name: 'test.xlsx', original_name: 'test.xlsx' }] });
+    mockInsertPlanRecords.mockResolvedValue(undefined);
+    mockLogAudit.mockResolvedValue(undefined);
+
+    const req = {
+      file: { path: '/tmp/test.xlsx', filename: 'test.xlsx', originalname: 'test.xlsx', size: 1000 },
+      body: { year: '2026' }, user: { id: 1 }, ip: '127.0.0.1',
+    };
+    const res = mockRes();
+    await planUploadCtrl.upload(req, res, mockNext);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const body = res.json.mock.calls[0][0];
+    expect(body.success).toBe(true);
+    expect(body.data.forecast_record_count).toBe(0);
+    expect(mockInsertForecastRecords).not.toHaveBeenCalled();
+    expect(body.uploadSteps.some(s => s.step === 'Forecasting Sheet Detection' && s.status === 'skipped')).toBe(true);
+  });
+
+  it('two-sheet workbook imports both Efficiency_Plan and Forecasting records under the same upload', async () => {
+    const fakePlanRecords = [{ dept: 'TET', program_name: 'RIGHT' }];
+    const fakeForecastRecords = [{ dept: 'TET', program_name: 'RIGHT', baseline: '5.6.0' }];
+    mockValidateAndParse.mockResolvedValue({
+      valid: true, errors: [], records: fakePlanRecords, recordCount: 1,
+      validationReport: { passed: true, sheetUsed: 'Efficiency_Plan', totalRows: 1, validRows: 1, errors: [], warnings: [], rowErrors: [], columnsSummary: [], headersDiagnostic: [] },
+    });
+    mockForecastValidateAndParse.mockReturnValue({
+      found: true, valid: true, errors: [], warnings: [], headers: [], records: fakeForecastRecords, recordCount: 1,
+      validationReport: { passed: true, sheetUsed: 'Forecasting', totalRows: 1, validRows: 1, errors: [], warnings: [], rowErrors: [], columnsSummary: [], headersDiagnostic: [] },
+    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 5 }] })
+      .mockResolvedValueOnce({ rows: [{ next_version: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ id: 10, file_name: 'test.xlsx', original_name: 'test.xlsx' }] })
+      .mockResolvedValueOnce({ rows: [] }); // UPDATE plan_uploaded_files forecast columns
+    mockInsertPlanRecords.mockResolvedValue(undefined);
+    mockInsertForecastRecords.mockResolvedValue(undefined);
+    mockLogAudit.mockResolvedValue(undefined);
+
+    const req = {
+      file: { path: '/tmp/test.xlsx', filename: 'test.xlsx', originalname: 'test.xlsx', size: 1000 },
+      body: { year: '2026' }, user: { id: 1 }, ip: '127.0.0.1',
+    };
+    const res = mockRes();
+    await planUploadCtrl.upload(req, res, mockNext);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const body = res.json.mock.calls[0][0];
+    expect(body.success).toBe(true);
+    expect(mockInsertPlanRecords).toHaveBeenCalledWith(10, fakePlanRecords);
+    expect(mockInsertForecastRecords).toHaveBeenCalledWith(10, fakeForecastRecords);
+    expect(body.data.forecast_record_count).toBe(1);
+    expect(body.uploadSteps.some(s => s.step === 'Forecasting Data Import' && s.status === 'passed')).toBe(true);
   });
 });
 
