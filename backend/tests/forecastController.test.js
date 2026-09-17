@@ -48,7 +48,8 @@ describe('forecastController.getTimeline', () => {
           { id: 1, dept: 'TET', program_name: 'RIGHT', baseline: '5.6.0', baseline_start: '2025-04-01', baseline_end: '2027-03-01', estimated_hrs: '13614', savings_hrs: '2340' },
         ],
       })
-      .mockResolvedValueOnce({ rows: [{ savings_hrs: '7573', estimated_hrs: '19614' }] }); // overall (plan-only)
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '7573', estimated_hrs: '19614' }] }) // plan overall
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '2340', estimated_hrs: '13614' }] }); // forecast overall
 
     const req = { query: {} };
     const res = mockRes();
@@ -66,26 +67,48 @@ describe('forecastController.getTimeline', () => {
     expect(prog.forecastRecords[0].efficiency_pct).toBeCloseTo(17.2, 1); // 2340/13614*100
     expect(prog.forecastRecords[0].actual_hrs).toBeUndefined();
     expect(prog.forecastRecords[0].effort_variance).toBeUndefined();
+    // Achieved Efficiency = plan-only 7573/19614*100; Forecasted Efficiency = (7573+2340)/(19614+13614)*100
+    expect(body.data.overall.achievedEfficiencyPct).toBeCloseTo(38.6, 1);
+    expect(body.data.overall.forecastedEfficiencyPct).toBeCloseTo(29.8, 1);
   });
 
-  it('computes Overall Savings from Efficiency Plan only, ignoring forecast rows', async () => {
+  it('computes Achieved Efficiency from Efficiency Plan only, ignoring forecast rows', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] }) // plan_programs
       .mockResolvedValueOnce({ rows: [] }) // forecast_programs
-      .mockResolvedValueOnce({ rows: [{ savings_hrs: '15240', estimated_hrs: '50000' }] }); // overall
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '15240', estimated_hrs: '50000' }] }) // plan overall
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] }); // forecast overall
 
     const req = { query: {} };
     const res = mockRes();
     await forecastCtrl.getTimeline(req, res, mockNext);
 
     const body = res.json.mock.calls[0][0];
-    expect(body.data.overall).toEqual({ savingsHrs: 15240, estimatedHrs: 50000, savingsPct: 30.5 });
+    expect(body.data.overall.achievedEfficiencyPct).toBe(30.5); // 15240/50000*100
+    expect(body.data.overall.forecastedEfficiencyPct).toBe(30.5); // no forecast data, same as plan-only
   });
 
-  it('returns savingsPct:0 when estimated hours are zero (avoids divide-by-zero)', async () => {
+  it('computes Forecasted Efficiency by combining Efficiency Plan and Forecasting sums', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '10000', estimated_hrs: '40000' }] }) // plan overall
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '5000', estimated_hrs: '20000' }] }); // forecast overall
+
+    const req = { query: {} };
+    const res = mockRes();
+    await forecastCtrl.getTimeline(req, res, mockNext);
+
+    const body = res.json.mock.calls[0][0];
+    expect(body.data.overall.achievedEfficiencyPct).toBe(25); // 10000/40000*100
+    expect(body.data.overall.forecastedEfficiencyPct).toBe(25); // (10000+5000)/(40000+20000)*100
+  });
+
+  it('returns 0% for both KPIs when estimated hours are zero (avoids divide-by-zero)', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] })
       .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] });
 
     const req = { query: {} };
@@ -93,13 +116,15 @@ describe('forecastController.getTimeline', () => {
     await forecastCtrl.getTimeline(req, res, mockNext);
 
     const body = res.json.mock.calls[0][0];
-    expect(body.data.overall.savingsPct).toBe(0);
+    expect(body.data.overall.achievedEfficiencyPct).toBe(0);
+    expect(body.data.overall.forecastedEfficiencyPct).toBe(0);
   });
 
   it('applies multi-select dept/program filters via ANY($n)', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] })
       .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] });
 
     const req = { query: { dept: ['TET', 'DTech'], program: ['RIGHT'] } };
@@ -117,7 +142,8 @@ describe('forecastController.getTimeline', () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] }) // no plan_programs
       .mockResolvedValueOnce({ rows: [{ id: 1, dept: 'Sssys', program_name: 'DMS', baseline: '1.0.0', baseline_start: '2025-04-01', baseline_end: '2025-12-31', estimated_hrs: '1000', savings_hrs: '100' }] })
-      .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] });
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '0', estimated_hrs: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '100', estimated_hrs: '1000' }] });
 
     const req = { query: {} };
     const res = mockRes();

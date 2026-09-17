@@ -1,18 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Autocomplete, TextField, Chip, ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material';
-import { GanttChartSquare, TrendingUp, Target, RefreshCw } from 'lucide-react';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { GanttChartSquare, TrendingUp, Target, RefreshCw, ArrowRight } from 'lucide-react';
 import { planForecastApi } from '../../services/planApi';
 import { useThemeStore } from '../../store/useStore';
 import { SkeletonCard } from '../../components/ui/LoadingSpinner';
-import { formatNumber, formatPct } from '../../utils/exportUtils';
+import { formatPct } from '../../utils/exportUtils';
 import ForecastTimeline from './ForecastTimeline';
+import EfficiencySavingsChart from './EfficiencySavingsChart';
 
 export default function ProgramForecast() {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
   const [selectedDepts, setSelectedDepts] = useState([]);
   const [selectedPrograms, setSelectedPrograms] = useState([]);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
 
   const { data: filterOptions, isLoading: loadingOptions } = useQuery({
     queryKey: ['forecast-filter-options'],
@@ -119,10 +125,30 @@ export default function ProgramForecast() {
                 )}
               />
             </div>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <div>
+                <label className="label">Time Interval</label>
+                <div className="flex items-center gap-2">
+                  <DatePicker
+                    value={startDate}
+                    onChange={setStartDate}
+                    maxDate={endDate || undefined}
+                    slotProps={{ textField: { size: 'small', placeholder: 'Start Date', sx: { width: 150 } } }}
+                  />
+                  <ArrowRight size={14} className="text-gray-400 flex-shrink-0" />
+                  <DatePicker
+                    value={endDate}
+                    onChange={setEndDate}
+                    minDate={startDate || undefined}
+                    slotProps={{ textField: { size: 'small', placeholder: 'End Date', sx: { width: 150 } } }}
+                  />
+                </div>
+              </div>
+            </LocalizationProvider>
             <button
-              onClick={() => { setSelectedDepts([]); setSelectedPrograms([]); }}
+              onClick={() => { setSelectedDepts([]); setSelectedPrograms([]); setStartDate(null); setEndDate(null); }}
               className="btn-secondary text-xs ml-auto self-end"
-              title="Clear Department and Program filters"
+              title="Clear Department, Program and Time Interval filters"
             >
               <RefreshCw size={12} /> Reset Filters
             </button>
@@ -137,24 +163,28 @@ export default function ProgramForecast() {
         </div>
       ) : (
         <>
-          <ForecastTimeline programs={timeline?.programs || []} />
+          <ForecastTimeline programs={timeline?.programs || []} startDate={startDate} endDate={endDate} />
+
+          <EfficiencySavingsChart programs={timeline?.programs || []} startDate={startDate} endDate={endDate} isDark={isDark} />
 
           <div className="grid grid-cols-2 gap-4 max-w-xl">
             <div className="card p-5">
               <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wide">
-                <Target size={14} /> Overall Savings
+                <Target size={14} /> Achieved Efficiency
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-                {formatNumber(overall?.savingsHrs)} <span className="text-sm font-medium text-gray-400">Hrs</span>
+                {formatPct(overall?.achievedEfficiencyPct)}
               </p>
+              <p className="text-[11px] text-gray-400 mt-1">Source: Efficiency Plan</p>
             </div>
             <div className="card p-5">
               <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wide">
-                <TrendingUp size={14} /> Overall Savings %
+                <TrendingUp size={14} /> Forecasted Efficiency
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-                {formatPct(overall?.savingsPct)}
+                {formatPct(overall?.forecastedEfficiencyPct)}
               </p>
+              <p className="text-[11px] text-gray-400 mt-1">Source: Efficiency Plan + Forecasting</p>
             </div>
           </div>
         </>

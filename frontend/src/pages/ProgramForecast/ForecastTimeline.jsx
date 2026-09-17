@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { addMonths, differenceInCalendarMonths, endOfMonth, format, startOfMonth } from 'date-fns';
+import { addMonths, differenceInCalendarMonths, endOfDay, endOfMonth, format, startOfDay, startOfMonth } from 'date-fns';
 import { formatNumber, formatPct } from '../../utils/exportUtils';
 
 const LABEL_COL_WIDTH = 200;
@@ -35,17 +35,19 @@ function fiscalYearBoundaries(minDate, maxDate) {
   return boundaries;
 }
 
-// Calendar-quarter mapping (explicit, does not follow the Apr–Mar fiscal year
-// used elsewhere): Q1 Jan–Mar, Q2 Apr–Jun, Q3 Jul–Sep, Q4 Oct–Dec.
+// Fiscal-year quarter mapping (aligned with the Apr–Mar fiscal year used for
+// the FY boundary lines): Q1 Apr–Jun, Q2 Jul–Sep, Q3 Oct–Dec, Q4 Jan–Mar.
 function quarterOf(date) {
-  return Math.floor(date.getMonth() / 3) + 1;
+  return Math.floor(((date.getMonth() + 9) % 12) / 3) + 1;
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ label, value, warn }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1">
       <span className="text-[12.5px] text-gray-500 dark:text-gray-400">{label}</span>
-      <span className="text-[13px] font-semibold text-gray-800 dark:text-gray-100 tabular-nums text-right">{value}</span>
+      <span className={`text-[13px] font-semibold tabular-nums text-right ${warn ? 'text-rose-600 dark:text-rose-400' : 'text-gray-800 dark:text-gray-100'}`}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -85,20 +87,20 @@ function SegmentTooltip({ hover }) {
         <div className="my-1.5 border-t border-gray-100 dark:border-gray-700" />
         <InfoRow label="Estimation" value={`${formatNumber(r.estimated_hrs)} Hrs`} />
         {!isForecast && <InfoRow label="Actual" value={`${formatNumber(r.actual_hrs)} Hrs`} />}
-        {!isForecast && <InfoRow label="Variance" value={`${formatNumber(r.effort_variance)} Hrs`} />}
+        {!isForecast && <InfoRow label="Variance" value={`${formatNumber(r.effort_variance)} Hrs`} warn={parseFloat(r.effort_variance) < 0} />}
         <div className="my-1.5 border-t border-gray-100 dark:border-gray-700" />
         <InfoRow label="Savings" value={`${formatNumber(r.savings_hrs)} Hrs`} />
         <InfoRow label="Efficiency" value={r.efficiency_pct != null ? formatPct(r.efficiency_pct) : '—'} />
       </div>
       <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-[11px] leading-snug text-blue-800 dark:text-blue-300">
-        Savings = Effort saved from opportunities · Efficiency = Savings ÷ Estimated × 100
+        Savings = {isForecast ? 'Total Cost Saved from Opportunities (Hrs)' : 'Total Effort Saved from Opportunities (Hrs)'} · Efficiency = Savings ÷ Estimated × 100
       </div>
     </div>,
     document.body
   );
 }
 
-export default function ForecastTimeline({ programs }) {
+export default function ForecastTimeline({ programs, startDate, endDate }) {
   const scrollRef = useRef(null);
   const showTimer = useRef(null);
   const [hover, setHover] = useState(null);
@@ -114,17 +116,31 @@ export default function ForecastTimeline({ programs }) {
   }, []);
 
   const { minTime, maxTime, months, rows } = useMemo(() => {
-    const rows = programs.map(p => ({
-      ...p,
-      planRecords: p.planRecords
-        .map(r => ({ ...r, _start: toDate(r.baseline_start), _end: toDate(r.baseline_end) }))
-        .filter(r => r._start && r._end)
-        .sort((a, b) => a._start - b._start),
-      forecastRecords: p.forecastRecords
-        .map(r => ({ ...r, _start: toDate(r.baseline_start), _end: toDate(r.baseline_end) }))
-        .filter(r => r._start && r._end)
-        .sort((a, b) => a._start - b._start),
-    }));
+    // Time Interval filter — a record is included if its [start, end] span
+    // overlaps the selected interval at all (not just fully contained), so a
+    // baseline that merely started before / ends after the window still shows,
+    // clipped at the window edge like a standard Gantt zoom.
+    const intervalStart = startDate ? startOfDay(startDate) : null;
+    const intervalEnd = endDate ? endOfDay(endDate) : null;
+    const overlapsInterval = (r) => {
+      if (intervalStart && r._end < intervalStart) return false;
+      if (intervalEnd && r._start > intervalEnd) return false;
+      return true;
+    };
+
+    const rows = programs
+      .map(p => ({
+        ...p,
+        planRecords: p.planRecords
+          .map(r => ({ ...r, _start: toDate(r.baseline_start), _end: toDate(r.baseline_end) }))
+          .filter(r => r._start && r._end && overlapsInterval(r))
+          .sort((a, b) => a._start - b._start),
+        forecastRecords: p.forecastRecords
+          .map(r => ({ ...r, _start: toDate(r.baseline_start), _end: toDate(r.baseline_end) }))
+          .filter(r => r._start && r._end && overlapsInterval(r))
+          .sort((a, b) => a._start - b._start),
+      }))
+      .filter(p => p.planRecords.length || p.forecastRecords.length);
 
     const allDates = rows.flatMap(p => [
       ...p.planRecords.flatMap(r => [r._start, r._end]),
@@ -133,15 +149,20 @@ export default function ForecastTimeline({ programs }) {
 
     if (!allDates.length) return { minTime: null, maxTime: null, months: [], rows };
 
-    const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
-    const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+    // The displayed window follows the user's Time Interval selection when
+    // set (so "the timeline period to be displayed" is exactly what they
+    // picked), falling back to the filtered records' own span otherwise.
+    const dataMinDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+    const dataMaxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+    const minDate = intervalStart || dataMinDate;
+    const maxDate = intervalEnd || dataMaxDate;
     const domainStart = startOfMonth(minDate);
     const domainEnd = endOfMonth(maxDate);
     const totalMonths = differenceInCalendarMonths(domainEnd, domainStart) + 1;
     const months = Array.from({ length: totalMonths }, (_, i) => addMonths(domainStart, i));
 
     return { minTime: domainStart.getTime(), maxTime: domainEnd.getTime() + 1, months, rows };
-  }, [programs]);
+  }, [programs, startDate, endDate]);
 
   if (!rows.length) {
     return (
@@ -227,6 +248,14 @@ export default function ForecastTimeline({ programs }) {
         <span className="flex items-center gap-2">
           <span className="inline-block w-0 h-3.5 border-l-2 border-dotted border-red-500" />
           Fiscal Year Boundary
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
+            <span className="inline-block w-5 h-[2px] rounded-full bg-rose-600 dark:bg-rose-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
+          </span>
+          Negative Variance
         </span>
       </div>
 
@@ -316,6 +345,12 @@ export default function ForecastTimeline({ programs }) {
                     const top = ROW_V_PADDING + laneIdx * LANE_HEIGHT;
                     laneIdx += 1;
                     const showLabels = width >= MIN_LABEL_WIDTH;
+                    // Negative variance (Estimated < Actual, i.e. overrun) is flagged with a
+                    // muted warning color — deliberately not pure red, kept distinct from the
+                    // Forecast amber and the FY-boundary/Today red so it reads as its own signal.
+                    const isNegativeVariance = parseFloat(r.effort_variance) < 0;
+                    const lineColor = isNegativeVariance ? 'bg-rose-600 dark:bg-rose-400' : 'bg-carbon dark:bg-blue-400';
+                    const labelColor = isNegativeVariance ? 'text-rose-600 dark:text-rose-400' : 'text-carbon dark:text-blue-300';
                     return (
                       <div
                         key={`plan-${r.id}`}
@@ -326,24 +361,24 @@ export default function ForecastTimeline({ programs }) {
                       >
                         {showLabels && (
                           <>
-                            <span className="absolute left-0 top-0 -translate-x-1/2 text-[10px] font-medium text-carbon dark:text-blue-300 whitespace-nowrap">
+                            <span className={`absolute left-0 top-0 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap ${labelColor}`}>
                               {format(r._start, "MMM''yy")}
                             </span>
-                            <span className="absolute right-0 top-0 translate-x-1/2 text-[10px] font-medium text-carbon dark:text-blue-300 whitespace-nowrap">
+                            <span className={`absolute right-0 top-0 translate-x-1/2 text-[10px] font-medium whitespace-nowrap ${labelColor}`}>
                               {format(r._end, "MMM''yy")}
                             </span>
                           </>
                         )}
                         <div
-                          className="absolute left-0 right-0 h-[2.5px] rounded-full bg-carbon dark:bg-blue-400 group-hover:h-[3.5px] transition-all"
+                          className={`absolute left-0 right-0 h-[2.5px] rounded-full group-hover:h-[3.5px] transition-all ${lineColor}`}
                           style={{ top: LANE_LINE_OFFSET - ROW_V_PADDING }}
                         />
                         <div
-                          className="absolute w-2.5 h-2.5 rounded-full bg-carbon dark:bg-blue-400 ring-2 ring-white dark:ring-gray-900 -translate-x-1/2 -translate-y-1/2"
+                          className={`absolute w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-gray-900 -translate-x-1/2 -translate-y-1/2 ${lineColor}`}
                           style={{ left: 0, top: LANE_LINE_OFFSET - ROW_V_PADDING }}
                         />
                         <div
-                          className="absolute w-2.5 h-2.5 rounded-full bg-carbon dark:bg-blue-400 ring-2 ring-white dark:ring-gray-900 translate-x-1/2 -translate-y-1/2"
+                          className={`absolute w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-gray-900 translate-x-1/2 -translate-y-1/2 ${lineColor}`}
                           style={{ right: 0, top: LANE_LINE_OFFSET - ROW_V_PADDING }}
                         />
                       </div>
