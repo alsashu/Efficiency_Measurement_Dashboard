@@ -14,6 +14,10 @@ vi.mock('../services/planApi', () => ({
   },
 }));
 
+// The category/efficiency combo chart repeats program names on its x-axis and
+// has its own suite (programCategoryEfficiency.test.jsx); keep this one about the timeline.
+vi.mock('../pages/ProgramForecast/ProgramCategoryEfficiencyChart', () => ({ default: () => null }));
+
 // Lightweight MUI stand-ins — Autocomplete/TextField/Chip aren't the thing under test here.
 vi.mock('@mui/material', () => ({
   ThemeProvider: ({ children }) => React.createElement(React.Fragment, null, children),

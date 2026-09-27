@@ -16,6 +16,7 @@ const PAGE_TITLES = {
   '/settings': 'Settings',
   '/plan/overview': 'Dashboard — Plan Data Overview',
   '/plan': 'Dashboard — Plan Data',
+  '/plan/programs': 'Programs — Plan Data',
   '/plan/upload': 'Excel Upload — Plan Data',
   '/plan/data-viewer': 'Data Viewer — Plan Data',
   '/plan/analytics': 'Analytics — Plan Data',

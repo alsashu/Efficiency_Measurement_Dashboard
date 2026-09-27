@@ -29,7 +29,7 @@ const META_BY_KEY = Object.fromEntries(CATEGORY_META.map(m => [m.key, m]));
 // into one of 5 groups and sums their values; percentages are recomputed
 // against the same overall total so the donut still represents 100% of effort
 // saved. The default (unconsolidated) chart is untouched by this.
-const CONSOLIDATION_MAP = {
+export const CONSOLIDATION_MAP = {
   automation_testing: 'automation',
   automation_others: 'automation',
   automation_cicd: 'cicd_devx',
@@ -42,7 +42,7 @@ const CONSOLIDATION_MAP = {
   inefficiency_reduction: 'ref_lib_sdlc',
 };
 
-const CONSOLIDATED_META = [
+export const CONSOLIDATED_META = [
   { key: 'ref_lib_sdlc', name: 'Reference Lib., SDLC Process Improvement and Reducing Inefficiency', light: '#2a78d6', dark: '#3987e5' },
   { key: 'ai_assisted', name: 'AI Assisted / GHCP / Copilot Usage', light: '#e87ba4', dark: '#d55181' },
   { key: 'automation', name: 'Automation', light: '#eda100', dark: '#c98500' },
@@ -51,7 +51,7 @@ const CONSOLIDATED_META = [
 ];
 const CONSOLIDATED_META_BY_KEY = Object.fromEntries(CONSOLIDATED_META.map(m => [m.key, m]));
 
-function consolidateData(data) {
+export function consolidateData(data) {
   const totals = {};
   for (const d of data) {
     const groupKey = CONSOLIDATION_MAP[d.key] || d.key;

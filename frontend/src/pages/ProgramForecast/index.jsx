@@ -11,6 +11,7 @@ import { SkeletonCard } from '../../components/ui/LoadingSpinner';
 import { formatPct } from '../../utils/exportUtils';
 import ForecastTimeline from './ForecastTimeline';
 import EfficiencySavingsChart from './EfficiencySavingsChart';
+import ProgramCategoryEfficiencyChart from './ProgramCategoryEfficiencyChart';
 
 export default function ProgramForecast() {
   const { theme } = useThemeStore();
@@ -166,6 +167,8 @@ export default function ProgramForecast() {
           <ForecastTimeline programs={timeline?.programs || []} startDate={startDate} endDate={endDate} />
 
           <EfficiencySavingsChart programs={timeline?.programs || []} startDate={startDate} endDate={endDate} isDark={isDark} />
+
+          <ProgramCategoryEfficiencyChart programs={timeline?.programs || []} startDate={startDate} endDate={endDate} isDark={isDark} />
 
           <div className="grid grid-cols-2 gap-4 max-w-xl">
             <div className="card p-5">

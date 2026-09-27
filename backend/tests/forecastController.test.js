@@ -154,4 +154,26 @@ describe('forecastController.getTimeline', () => {
     expect(body.data.programs[0].planRecords).toEqual([]);
     expect(body.data.programs[0].forecastRecords).toHaveLength(1);
   });
+
+  it('returns raw opportunity-category hours on plan and forecast records', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [
+        { id: 1, dept: 'TET', program_name: 'RIGHT', baseline: '5.0.0', baseline_start: '2025-04-01', baseline_end: '2025-06-30', estimated_hrs: '1000', actual_hrs: '900', effort_variance: '100', total_effort_saved_hrs: '300', automation_testing: '200', automation_cicd: '100', ai_copilot: null },
+      ] })
+      .mockResolvedValueOnce({ rows: [
+        { id: 2, dept: 'TET', program_name: 'RIGHT', baseline: '5.6.0', baseline_start: '2026-01-10', baseline_end: '2026-12-30', estimated_hrs: '500', savings_hrs: '50', simulators_tools: '50' },
+      ] })
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '300', estimated_hrs: '1000' }] })
+      .mockResolvedValueOnce({ rows: [{ savings_hrs: '50', estimated_hrs: '500' }] });
+
+    const res = mockRes();
+    await forecastCtrl.getTimeline({ query: {} }, res, mockNext);
+
+    expect(mockQuery.mock.calls[0][0]).toContain('automation_cicd');
+    expect(mockQuery.mock.calls[1][0]).toContain('inefficiency_reduction');
+    const prog = res.json.mock.calls[0][0].data.programs[0];
+    expect(prog.planRecords[0].categories).toMatchObject({ automation_testing: 200, automation_cicd: 100, ai_copilot: 0 });
+    expect(Object.keys(prog.planRecords[0].categories)).toHaveLength(10);
+    expect(prog.forecastRecords[0].categories.simulators_tools).toBe(50);
+  });
 });

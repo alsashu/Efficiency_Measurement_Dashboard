@@ -5,6 +5,7 @@ import { usePlanFilterStore } from '../../store/useStore';
 import { SkeletonCard } from '../../components/ui/LoadingSpinner';
 import PlanKpiCard from '../PlanDashboard/PlanKpiCard';
 import PlanOpportunityDonutChart from '../PlanDashboard/charts/PlanOpportunityDonutChart';
+import PlanOpportunityDonutEnhanced from '../PlanDashboard/charts/PlanOpportunityDonutEnhanced';
 import EffortSavedImpact from '../../components/plan/EffortSavedImpact';
 import {
   Clock, Activity, TrendingUp, Target, Layers, BarChart3, RefreshCw, Calendar,
@@ -212,6 +213,13 @@ export default function PlanOverview() {
             {loadingOpportunity
               ? <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
               : <PlanOpportunityDonutChart data={opportunityData || []} consolidate />}
+          </div>
+
+          {/* Enhanced Opportunity Categories — interactive donut, compact/expanded */}
+          <div className="chart-container">
+            {loadingOpportunity
+              ? <div className="h-72 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              : <PlanOpportunityDonutEnhanced data={opportunityData || []} />}
           </div>
 
           {/* Effort Saved Impact — hard-coded values */}
